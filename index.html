@@ -111,14 +111,14 @@
             <button class="tab-btn" onclick="openTab(event, 'xml-xlsx')">XML p/ XLSX</button>
         </div>
 
-        <!-- Ferramenta 1: Imagem para PDF -->
+        <!-- Ferramenta 1: Imagem(ns) para PDF -->
         <div id="img-pdf" class="tab-content active">
             <form action="/converter" method="POST" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label>Selecione uma imagem (PNG, JPG, WEBP...):</label>
-                    <input type="file" name="file" accept="image/*" required>
+                    <label>Selecione uma ou mais imagens (PNG, JPG, WEBP...):</label>
+                    <input type="file" name="files" accept="image/*" multiple required>
                 </div>
-                <button type="submit" class="submit-btn">Converter para PDF</button>
+                <button type="submit" class="submit-btn">Converter para PDF Único</button>
             </form>
         </div>
 
