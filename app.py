@@ -1,22 +1,13 @@
 import os
 import uuid
-import jinja2
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for
 from PIL import Image
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
-# Configura o Flask para buscar o index.html na raiz OU na pasta 'templates'
-diretorio_atual = os.path.dirname(os.path.abspath(__file__))
-app.jinja_loader = jinja2.ChoiceLoader([
-    app.jinja_loader,
-    jinja2.FileSystemLoader(diretorio_atual),
-    jinja2.FileSystemLoader(os.path.join(diretorio_atual, 'templates')),
-])
-
 # Pasta temporária para uploads
-UPLOAD_FOLDER = os.path.join(diretorio_atual, 'uploads')
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp', 'heic'}
@@ -26,7 +17,15 @@ def arquivo_permitido(filename, extensoes_permitidas):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # 1. Tenta carregar da pasta templates/
+    try:
+        return render_template('index.html')
+    except Exception:
+        # 2. Se não encontrar em templates/, busca na raiz do projeto
+        caminho_raiz = os.path.join(os.path.dirname(__file__), 'index.html')
+        if os.path.exists(caminho_raiz):
+            return send_file(caminho_raiz)
+        return "Erro: O arquivo index.html não foi encontrado na raiz e nem na pasta templates/.", 404
 
 @app.route('/converter', methods=['POST'])
 @app.route('/converter-imagem-pdf', methods=['POST'])
@@ -63,14 +62,14 @@ def converter_imagem_pdf():
             return f"Erro no processamento da imagem: {e}", 500
 
         finally:
-            # EXCLUSÃO IMEDIATA 1: Apaga a imagem recebida logo após a conversão
+            # EXCLUSÃO IMEDIATA 1: Deleta a imagem recebida
             if os.path.exists(caminho_entrada):
                 try:
                     os.remove(caminho_entrada)
                 except Exception as e:
                     app.logger.error(f"Erro ao deletar imagem de entrada: {e}")
 
-        # EXCLUSÃO IMEDIATA 2: Apaga o PDF gerado após o download terminar
+        # EXCLUSÃO IMEDIATA 2: Deleta o PDF gerado assim que o download terminar
         @after_this_request
         def apagar_pdf_gerado(response):
             try:
