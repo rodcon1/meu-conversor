@@ -1,6 +1,7 @@
 Flask
 Pillow
+gunicorn
+pdf2docx
 pandas
 openpyxl
-pdf2docx
-gunicorn
+lxml
