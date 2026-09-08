@@ -3,60 +3,164 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor de Imagem para PDF</title>
+    <title>Conversor Multifuncional de Documentos</title>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f6f9;
+            background-color: #f0f2f5;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            min-height: 100vh;
+            padding: 20px;
         }
-        .container {
-            background-color: #ffffff;
-            padding: 30px;
+        .card {
+            background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
         }
         h1 {
-            color: #333;
-            font-size: 24px;
+            text-align: center;
+            color: #1a1a1a;
+            font-size: 22px;
             margin-bottom: 20px;
         }
-        input[type="file"] {
-            margin: 20px 0;
-            width: 100%;
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e4e6eb;
+            margin-bottom: 25px;
         }
-        button {
-            background-color: #4A90E2;
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            font-weight: 600;
+            color: #65676b;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4b4f56;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #cccccc;
+            border-radius: 8px;
+            background: #fafafa;
+            cursor: pointer;
+        }
+        button.submit-btn {
+            width: 100%;
+            background-color: #0066cc;
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 12px;
+            border-radius: 8px;
             font-size: 16px;
-            border-radius: 6px;
+            font-weight: 600;
             cursor: pointer;
-            width: 100%;
-            transition: background 0.3s;
+            transition: background 0.2s;
         }
-        button:hover {
-            background-color: #357ABD;
+        button.submit-btn:hover {
+            background-color: #0052a3;
+        }
+        .footer-note {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #8a8d91;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Imagem para PDF</h1>
-        <form action="/converter" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" accept="image/*" required>
-            <button type="submit">Converter e Baixar PDF</button>
-        </form>
+    <div class="card">
+        <h1>Conversor de Documentos</h1>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab(event, 'img-pdf')">Imagem p/ PDF</button>
+            <button class="tab-btn" onclick="openTab(event, 'pdf-word')">PDF p/ Word</button>
+            <button class="tab-btn" onclick="openTab(event, 'xml-xlsx')">XML p/ XLSX</button>
+        </div>
+
+        <!-- Ferramenta 1: Imagem para PDF -->
+        <div id="img-pdf" class="tab-content active">
+            <form action="/converter" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Selecione uma imagem (PNG, JPG, WEBP...):</label>
+                    <input type="file" name="file" accept="image/*" required>
+                </div>
+                <button type="submit" class="submit-btn">Converter para PDF</button>
+            </form>
+        </div>
+
+        <!-- Ferramenta 2: PDF para Word -->
+        <div id="pdf-word" class="tab-content">
+            <form action="/converter-pdf-word" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Selecione o arquivo PDF:</label>
+                    <input type="file" name="file" accept=".pdf" required>
+                </div>
+                <button type="submit" class="submit-btn">Converter para Word (.docx)</button>
+            </form>
+        </div>
+
+        <!-- Ferramenta 3: XML para Excel (XLSX) -->
+        <div id="xml-xlsx" class="tab-content">
+            <form action="/converter-xml-xlsx" method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label>Selecione o arquivo XML:</label>
+                    <input type="file" name="file" accept=".xml" required>
+                </div>
+                <button type="submit" class="submit-btn">Converter para Excel (.xlsx)</button>
+            </form>
+        </div>
+
+        <p class="footer-note">🔒 Seus arquivos são excluídos do servidor imediatamente após o download.</p>
     </div>
 
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].classList.remove("active");
+            }
+            tablinks = document.getElementsByClassName("tab-btn");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].classList.remove("active");
+            }
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+    </script>
 </body>
 </html>
