@@ -8,6 +8,7 @@ from PIL import Image
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
+# Pasta temporária para salvar uploads e resultados durante o processamento
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -23,42 +24,70 @@ def index():
             return send_file(caminho_raiz)
         return "Erro: O arquivo index.html não foi encontrado.", 404
 
-# 1. ROTA: IMAGEM PARA PDF
+# ---------------------------------------------------------
+# 1. ROTA: IMAGEM OU MÚLTIPLAS IMAGENS PARA UM ÚNICO PDF
+# ---------------------------------------------------------
 @app.route('/converter', methods=['POST'])
 @app.route('/converter-imagem-pdf', methods=['POST'])
 def converter_imagem_pdf():
-    file = request.files.get('file')
-    if not file or file.filename == '':
+    files = request.files.getlist('files') or request.files.getlist('file')
+    files = [f for f in files if f and f.filename != '']
+
+    if not files:
         return redirect(url_for('index'))
 
     id_unico = str(uuid.uuid4())
-    extensao = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'png'
-    caminho_entrada = os.path.join(UPLOAD_FOLDER, f"input_{id_unico}.{extensao}")
+    caminhos_entrada = []
     caminho_saida = os.path.join(UPLOAD_FOLDER, f"output_{id_unico}.pdf")
 
     try:
-        file.save(caminho_entrada)
-        imagem = Image.open(caminho_entrada)
-        imagem_rgb = imagem.convert('RGB')
-        imagem_rgb.save(caminho_saida)
-        imagem.close()
-    except Exception as e:
-        app.logger.error(f"Erro ao converter Imagem: {e}")
-        return f"Erro na conversão da imagem: {e}", 500
-    finally:
-        if os.path.exists(caminho_entrada):
-            os.remove(caminho_entrada)
+        imagens_pil = []
+        for idx, file in enumerate(files):
+            extensao = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'png'
+            caminho_in = os.path.join(UPLOAD_FOLDER, f"input_{id_unico}_{idx}.{extensao}")
+            file.save(caminho_in)
+            caminhos_entrada.append(caminho_in)
 
+            img = Image.open(caminho_in)
+            img_rgb = img.convert('RGB')
+            imagens_pil.append(img_rgb)
+
+        if imagens_pil:
+            primeira_imagem = imagens_pil[0]
+            outras_imagens = imagens_pil[1:]
+            primeira_imagem.save(caminho_saida, save_all=True, append_images=outras_imagens)
+
+            for img in imagens_pil:
+                img.close()
+
+    except Exception as e:
+        app.logger.error(f"Erro ao converter Imagens para PDF: {e}")
+        return f"Erro na conversão das imagens: {e}", 500
+    finally:
+        # EXCLUSÃO IMEDIATA 1: Apaga todas as imagens de entrada originais
+        for caminho in caminhos_entrada:
+            if os.path.exists(caminho):
+                try:
+                    os.remove(caminho)
+                except Exception as e:
+                    app.logger.error(f"Erro ao deletar imagem de entrada: {e}")
+
+    # EXCLUSÃO IMEDIATA 2: Apaga o PDF gerado assim que o download terminar
     @after_this_request
     def apagar_gerado(response):
         if os.path.exists(caminho_saida):
-            os.remove(caminho_saida)
+            try:
+                os.remove(caminho_saida)
+            except Exception as e:
+                app.logger.error(f"Erro ao deletar PDF de saída: {e}")
         return response
 
-    nome_download = f"{os.path.splitext(file.filename)[0]}.pdf"
+    nome_download = f"{os.path.splitext(files[0].filename)[0]}_combinado.pdf" if len(files) > 1 else f"{os.path.splitext(files[0].filename)[0]}.pdf"
     return send_file(caminho_saida, as_attachment=True, download_name=nome_download)
 
+# ---------------------------------------------------------
 # 2. ROTA: PDF PARA WORD (.docx)
+# ---------------------------------------------------------
 @app.route('/converter-pdf-word', methods=['POST'])
 def converter_pdf_word():
     file = request.files.get('file')
@@ -91,7 +120,9 @@ def converter_pdf_word():
     nome_download = f"{os.path.splitext(file.filename)[0]}.docx"
     return send_file(caminho_saida, as_attachment=True, download_name=nome_download)
 
+# ---------------------------------------------------------
 # 3. ROTA: XML PARA EXCEL (.xlsx)
+# ---------------------------------------------------------
 @app.route('/converter-xml-xlsx', methods=['POST'])
 def converter_xml_xlsx():
     file = request.files.get('file')
@@ -105,7 +136,6 @@ def converter_xml_xlsx():
     try:
         file.save(caminho_entrada)
         
-        # Leitura simples do XML para DataFrame
         tree = ET.parse(caminho_entrada)
         root = tree.getroot()
         
