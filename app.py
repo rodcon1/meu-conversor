@@ -7,7 +7,7 @@ from PIL import Image
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
-# Configura o Flask para buscar páginas tanto na raiz quanto na pasta 'templates'
+# Configura o Flask para buscar páginas na raiz ou na pasta 'templates'
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
 app.jinja_loader = jinja2.ChoiceLoader([
     app.jinja_loader,
@@ -31,6 +31,10 @@ def index():
 @app.route('/politica')
 def politica():
     return render_template('politica.html')
+
+@app.route('/termos')
+def termos():
+    return render_template('termos.html')
 
 @app.route('/converter', methods=['POST'])
 @app.route('/converter-imagem-pdf', methods=['POST'])
@@ -67,7 +71,6 @@ def converter_imagem_pdf():
             flash('Nenhum arquivo de imagem válido foi enviado.')
             return redirect(url_for('index'))
 
-        # Salva todas as imagens em um único PDF
         imagens_pil[0].save(caminho_saida, save_all=True, append_images=imagens_pil[1:])
         
         for img in imagens_pil:
@@ -78,7 +81,6 @@ def converter_imagem_pdf():
         return f"Erro no processamento da imagem: {e}", 500
 
     finally:
-        # Apaga os arquivos originais enviados imediatamente
         for caminho in arquivos_temporarios:
             if os.path.exists(caminho):
                 try:
@@ -86,7 +88,6 @@ def converter_imagem_pdf():
                 except Exception as e:
                     app.logger.error(f"Erro ao deletar imagem temporária: {e}")
 
-    # Apaga o PDF gerado assim que o download terminar
     @after_this_request
     def apagar_pdf_gerado(response):
         try:
@@ -102,7 +103,6 @@ def converter_imagem_pdf():
         download_name="imagens_convertidas.pdf"
     )
 
-# ESTE BLOCO DEVE SER SEMPRE A ÚLTIMA COISA DO ARQUIVO
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
