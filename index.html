@@ -124,6 +124,67 @@
             background-color: #2b6cb0;
         }
 
+        /* Seção do Pix / Doação */
+        .pix-section {
+            background-color: #ffffff;
+            border: 2px dashed #e2e8f0;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 40px;
+            width: 100%;
+            max-width: 1100px;
+            text-align: center;
+        }
+
+        .pix-section h3 {
+            font-size: 1.2rem;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .pix-section p {
+            color: #718096;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        .pix-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            max-width: 450px;
+            margin: 0 auto;
+        }
+
+        .pix-input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            background-color: #f7fafc;
+            font-size: 0.9rem;
+            color: #4a5568;
+            text-align: center;
+        }
+
+        .btn-pix {
+            background-color: #38a169;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color 0.2s;
+        }
+
+        .btn-pix:hover {
+            background-color: #2f855a;
+        }
+
         footer {
             margin-top: auto;
             padding-top: 40px;
@@ -196,12 +257,40 @@
 
     </div>
 
+    <!-- Bloco de Doação Pix -->
+    <div class="pix-section">
+        <h3>☕ Gostou da ferramenta? Apoie o projeto!</h3>
+        <p>O site é gratuito e sem propagandas invasivas. Pague um café via Pix para manter o servidor no ar:</p>
+        <div class="pix-box">
+            <input type="text" id="pixKey" value="rodrigocontabeis01@gmail.com" readonly class="pix-input">
+            <button onclick="copiarPix()" id="btnCopiar" class="btn-pix">Copiar Chave</button>
+        </div>
+    </div>
+
     <footer>
         &copy; Meu Conversor - Todos os direitos reservados.
         <br><br>
         <a href="/politica">Política de Privacidade</a> | 
         <a href="/termos">Termos de Uso</a>
     </footer>
+
+    <script>
+        function copiarPix() {
+            var inputPix = document.getElementById("pixKey");
+            inputPix.select();
+            inputPix.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(inputPix.value);
+            
+            var btn = document.getElementById("btnCopiar");
+            btn.innerText = "Copiado! ✓";
+            btn.style.backgroundColor = "#2b6cb0";
+
+            setTimeout(function() {
+                btn.innerText = "Copiar Chave";
+                btn.style.backgroundColor = "#38a169";
+            }, 2500);
+        }
+    </script>
 
 </body>
 </html>
