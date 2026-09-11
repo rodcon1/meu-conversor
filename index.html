@@ -1,9 +1,24 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+    <!-- Google Tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SEU_CODIGO_AQUI"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-SEU_CODIGO_AQUI');
+    </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor Multifuncional de Documentos</title>
+    <title>Meu Conversor - Converter Imagens, PDF e XML Online</title>
+    <meta name="description" content="Ferramenta gratuita e rápida para converter imagens em PDF, PDF para Word e XML para Excel online.">
+    
+    <!-- Favicon (Ícone da Aba) -->
+    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/337/337946.png">
+
     <style>
         * {
             box-sizing: border-box;
@@ -11,156 +26,168 @@
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+
         body {
             background-color: #f0f2f5;
+            color: #333;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            padding: 20px;
+            padding: 40px 20px;
         }
-        .card {
-            background: #ffffff;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-            width: 100%;
-            max-width: 500px;
-            padding: 30px;
-        }
-        h1 {
+
+        header {
             text-align: center;
-            color: #1a1a1a;
-            font-size: 22px;
-            margin-bottom: 20px;
+            margin-bottom: 40px;
         }
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid #e4e6eb;
-            margin-bottom: 25px;
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 10px;
-            background: none;
-            border: none;
-            font-weight: 600;
-            color: #65676b;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
-        }
-        .tab-btn.active {
-            color: #0066cc;
-            border-bottom-color: #0066cc;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
+
+        header h1 {
+            font-size: 2.2rem;
+            color: #1a202c;
             margin-bottom: 8px;
-            color: #4b4f56;
-            font-size: 14px;
-            font-weight: 500;
         }
-        input[type="file"] {
+
+        header p {
+            font-size: 1.1rem;
+            color: #718096;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .card h2 {
+            font-size: 1.3rem;
+            color: #2d3748;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card p {
+            font-size: 0.95rem;
+            color: #4a5568;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .file-input {
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .file-input input[type="file"] {
             width: 100%;
             padding: 10px;
-            border: 2px dashed #cccccc;
+            border: 1px dashed #cbd5e0;
             border-radius: 8px;
-            background: #fafafa;
+            background-color: #f7fafc;
             cursor: pointer;
         }
-        button.submit-btn {
-            width: 100%;
-            background-color: #0066cc;
+
+        .btn {
+            background-color: #3182ce;
             color: white;
             border: none;
             padding: 12px;
-            border-radius: 8px;
-            font-size: 16px;
+            font-size: 1rem;
             font-weight: 600;
+            border-radius: 8px;
             cursor: pointer;
-            transition: background 0.2s;
+            width: 100%;
+            transition: background-color 0.2s;
         }
-        button.submit-btn:hover {
-            background-color: #0052a3;
+
+        .btn:hover {
+            background-color: #2b6cb0;
         }
-        .footer-note {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 12px;
-            color: #8a8d91;
+
+        footer {
+            margin-top: auto;
+            padding-top: 40px;
+            color: #a0aec0;
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h1>Conversor de Documentos</h1>
-        
-        <div class="tabs">
-            <button class="tab-btn active" onclick="openTab(event, 'img-pdf')">Imagem p/ PDF</button>
-            <button class="tab-btn" onclick="openTab(event, 'pdf-word')">PDF p/ Word</button>
-            <button class="tab-btn" onclick="openTab(event, 'xml-xlsx')">XML p/ XLSX</button>
-        </div>
+    <header>
+        <h1>Meu Conversor Online</h1>
+        <p>Selecione a ferramenta desejada e converta seus arquivos instantaneamente</p>
+    </header>
 
-        <!-- Ferramenta 1: Imagem(ns) para PDF -->
-        <div id="img-pdf" class="tab-content active">
+    <div class="container">
+        
+        <!-- Ferramenta 1: Imagens para PDF -->
+        <div class="card">
+            <div>
+                <h2>🖼️ Imagem para PDF</h2>
+                <p>Converta uma ou várias imagens (JPG, PNG) em um único arquivo PDF.</p>
+            </div>
             <form action="/converter" method="POST" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label>Selecione uma ou mais imagens (PNG, JPG, WEBP...):</label>
+                <div class="file-input">
                     <input type="file" name="files" accept="image/*" multiple required>
                 </div>
-                <button type="submit" class="submit-btn">Converter para PDF Único</button>
+                <button type="submit" class="btn">Converter para PDF</button>
             </form>
         </div>
 
         <!-- Ferramenta 2: PDF para Word -->
-        <div id="pdf-word" class="tab-content">
-            <form action="/converter-pdf-word" method="POST" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label>Selecione o arquivo PDF:</label>
+        <div class="card">
+            <div>
+                <h2>📄 PDF para Word</h2>
+                <p>Extraia o texto e formatação do seu arquivo PDF diretamente para DOCX.</p>
+            </div>
+            <form action="/pdf-para-word" method="POST" enctype="multipart/form-data">
+                <div class="file-input">
                     <input type="file" name="file" accept=".pdf" required>
                 </div>
-                <button type="submit" class="submit-btn">Converter para Word (.docx)</button>
+                <button type="submit" class="btn">Converter para Word</button>
             </form>
         </div>
 
-        <!-- Ferramenta 3: XML para Excel (XLSX) -->
-        <div id="xml-xlsx" class="tab-content">
-            <form action="/converter-xml-xlsx" method="POST" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label>Selecione o arquivo XML:</label>
+        <!-- Ferramenta 3: XML para Excel -->
+        <div class="card">
+            <div>
+                <h2>📊 XML para Excel</h2>
+                <p>Transforme notas e arquivos de dados XML em tabelas organizadas em XLSX.</p>
+            </div>
+            <form action="/xml-para-excel" method="POST" enctype="multipart/form-data">
+                <div class="file-input">
                     <input type="file" name="file" accept=".xml" required>
                 </div>
-                <button type="submit" class="submit-btn">Converter para Excel (.xlsx)</button>
+                <button type="submit" class="btn">Converter para Excel</button>
             </form>
         </div>
 
-        <p class="footer-note">🔒 Seus arquivos são excluídos do servidor imediatamente após o download.</p>
     </div>
 
-    <script>
-        function openTab(evt, tabName) {
-            var i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tab-content");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].classList.remove("active");
-            }
-            tablinks = document.getElementsByClassName("tab-btn");
-            for (i = 0; i < tablinks.length; i++) {
-                tablinks[i].classList.remove("active");
-            }
-            document.getElementById(tabName).classList.add("active");
-            evt.currentTarget.classList.add("active");
-        }
-    </script>
+    <footer>
+        &copy; Meu Conversor - Todos os direitos reservados.
+    </footer>
+
 </body>
 </html>
