@@ -317,6 +317,21 @@
                 <h2>📊 XML para Excel</h2>
                 <p>Transforme notas e arquivos de dados XML em tabelas organizadas em XLSX.</p>
             </div>
+            <!-- Ferramenta 4: PDF para Imagens -->
+        <div class="card">
+            <div>
+                <h2>🗂️ PDF para Imagens</h2>
+                <p>Extraia todas as páginas de um PDF e baixe como imagens (PNG) em um arquivo ZIP.</p>
+            </div>
+            <form action="/pdf-para-imagem" method="POST" enctype="multipart/form-data">
+                <div class="dropzone">
+                    <span class="dropzone-icon">🗂️</span>
+                    <span class="file-label">Arraste seu PDF aqui ou clique para selecionar</span>
+                    <input type="file" name="file" accept=".pdf" required>
+                </div>
+                <button type="submit" class="btn">Extrair Imagens</button>
+            </form>
+        </div>
             <form action="/xml-para-excel" method="POST" enctype="multipart/form-data">
                 <div class="dropzone">
                     <span class="dropzone-icon">📊</span>
