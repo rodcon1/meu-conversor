@@ -1,3 +1,6 @@
+import zipfile
+import io
+import fitz  # Esta é a biblioteca PyMuPDF
 import os
 import uuid
 import xml.etree.ElementTree as ET
@@ -233,7 +236,40 @@ def converter_xml_xlsx():
         as_attachment=True,
         download_name=nome_download
     )
+@app.route('/pdf-para-imagem', methods=['POST'])
+def pdf_para_imagem():
+    if 'file' not in request.files:
+        return 'Nenhum arquivo enviado', 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return 'Nenhum arquivo selecionado', 400
 
+    if file and file.filename.lower().endswith('.pdf'):
+        try:
+            pdf_document = fitz.open(stream=file.read(), filetype="pdf")
+            memory_zip = io.BytesIO()
+            
+            with zipfile.ZipFile(memory_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for page_num in range(len(pdf_document)):
+                    page = pdf_document.load_page(page_num)
+                    pix = page.get_pixmap(dpi=150) # Qualidade 150 DPI
+                    image_bytes = pix.tobytes("png")
+                    zf.writestr(f"pagina_{page_num + 1}.png", image_bytes)
+            
+            memory_zip.seek(0)
+            
+            return send_file(
+                memory_zip,
+                mimetype='application/zip',
+                as_attachment=True,
+                download_name='imagens_extraidas.zip'
+            )
+        except Exception as e:
+            print(f"Erro na conversão: {e}")
+            return 'Erro ao processar o PDF.', 500
+            
+    return 'Formato inválido.', 400
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
