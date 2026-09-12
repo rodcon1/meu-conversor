@@ -412,15 +412,64 @@
             }
         }
 
-        // Lógica de Loading Spinner nos botões ao enviar
+        // Lógica de Conversão Assíncrona (Fetch API + Reset Automático)
         document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function() {
+            // Ignora formulários que não possuem ação de conversão
+            if (!form.action) return;
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault(); // Evita o recarregamento tradicional da página
+
                 const btn = form.querySelector('button[type="submit"]');
-                if (btn) {
-                    setTimeout(() => {
-                        btn.disabled = true;
-                        btn.innerHTML = '<span class="spinner"></span> Convertendo...';
-                    }, 10);
+                const textoOriginal = btn.innerText;
+
+                // Ativa o spinner e desabilita o botão durante o envio
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span> Convertendo...';
+
+                try {
+                    const formData = new FormData(form);
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Falha no processamento do arquivo.');
+                    }
+
+                    // Captura o nome do arquivo se enviado pelo servidor ou gera um padrão
+                    let filename = 'arquivo_convertido';
+                    const disposition = response.headers.get('Content-Disposition');
+                    if (disposition && disposition.includes('filename=')) {
+                        filename = disposition.split('filename=')[1].replace(/["']/g, '');
+                    }
+
+                    // Recebe o arquivo e dispara o download automático no navegador
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(downloadUrl);
+
+                    // Reseta o campo de seleção para permitir novo envio imediato
+                    form.reset();
+                    const label = form.querySelector('.file-label');
+                    if (label) {
+                        label.textContent = 'Arraste seu arquivo aqui ou clique para selecionar';
+                    }
+
+                } catch (error) {
+                    alert('Ocorreu um erro durante a conversão. Verifique o arquivo e tente novamente.');
+                    console.error(error);
+                } finally {
+                    // Restaura o botão original instantaneamente após a conclusão
+                    btn.disabled = false;
+                    btn.innerHTML = textoOriginal;
                 }
             });
         });
