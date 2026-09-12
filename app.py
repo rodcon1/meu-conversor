@@ -1,7 +1,7 @@
 import os
 import uuid
 import jinja2
-from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for
+from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
 app = Flask(__name__)
@@ -35,6 +35,11 @@ def politica():
 @app.route('/termos')
 def termos():
     return render_template('termos.html')
+
+# Rota para carregar a imagem do QR Code do Pix na raiz
+@app.route('/pix-qr.png')
+def serve_pix_qr():
+    return send_from_directory(diretorio_atual, 'pix-qr.png')
 
 @app.route('/converter', methods=['POST'])
 @app.route('/converter-imagem-pdf', methods=['POST'])
