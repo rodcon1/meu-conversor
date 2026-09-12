@@ -1,5 +1,7 @@
 import os
 import uuid
+import xml.etree.ElementTree as ET
+import pandas as pd
 import jinja2
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
@@ -36,11 +38,14 @@ def politica():
 def termos():
     return render_template('termos.html')
 
-# Rota para carregar a imagem do QR Code do Pix na raiz
+# Rota para carregar a imagem do QR Code do Pix
 @app.route('/pix-qr.png')
 def serve_pix_qr():
     return send_from_directory(diretorio_atual, 'pix-qr.png')
 
+# ---------------------------------------------------------
+# 1. ROTA: IMAGENS PARA PDF
+# ---------------------------------------------------------
 @app.route('/converter', methods=['POST'])
 @app.route('/converter-imagem-pdf', methods=['POST'])
 def converter_imagem_pdf():
@@ -106,6 +111,127 @@ def converter_imagem_pdf():
         caminho_saida,
         as_attachment=True,
         download_name="imagens_convertidas.pdf"
+    )
+
+# ---------------------------------------------------------
+# 2. ROTA: PDF PARA WORD (.docx)
+# ---------------------------------------------------------
+@app.route('/pdf-para-word', methods=['POST'])
+@app.route('/converter-pdf-word', methods=['POST'])
+def converter_pdf_word():
+    file = request.files.get('file')
+    if not file or file.filename == '':
+        flash('Nenhum arquivo PDF selecionado.')
+        return redirect(url_for('index'))
+
+    if not arquivo_permitido(file.filename, {'pdf'}):
+        flash('Por favor, envie um arquivo .pdf válido.')
+        return redirect(url_for('index'))
+
+    id_unico = str(uuid.uuid4())
+    caminho_entrada = os.path.join(UPLOAD_FOLDER, f"input_{id_unico}.pdf")
+    caminho_saida = os.path.join(UPLOAD_FOLDER, f"output_{id_unico}.docx")
+
+    try:
+        file.save(caminho_entrada)
+        from pdf2docx import Converter
+        cv = Converter(caminho_entrada)
+        cv.convert(caminho_saida, start=0, end=None)
+        cv.close()
+
+    except Exception as e:
+        app.logger.error(f"Erro ao converter PDF para Word: {e}")
+        return f"Erro no processamento do PDF: {e}", 500
+
+    finally:
+        if os.path.exists(caminho_entrada):
+            try:
+                os.remove(caminho_entrada)
+            except Exception as e:
+                app.logger.error(f"Erro ao apagar PDF temporário: {e}")
+
+    @after_this_request
+    def apagar_docx_gerado(response):
+        try:
+            if os.path.exists(caminho_saida):
+                os.remove(caminho_saida)
+        except Exception as e:
+            app.logger.error(f"Erro ao apagar Word de saída: {e}")
+        return response
+
+    nome_download = f"{os.path.splitext(file.filename)[0]}.docx"
+    return send_file(
+        caminho_saida,
+        as_attachment=True,
+        download_name=nome_download
+    )
+
+# ---------------------------------------------------------
+# 3. ROTA: XML PARA EXCEL (.xlsx)
+# ---------------------------------------------------------
+@app.route('/xml-para-excel', methods=['POST'])
+@app.route('/converter-xml-xlsx', methods=['POST'])
+def converter_xml_xlsx():
+    file = request.files.get('file')
+    if not file or file.filename == '':
+        flash('Nenhum arquivo XML selecionado.')
+        return redirect(url_for('index'))
+
+    if not arquivo_permitido(file.filename, {'xml'}):
+        flash('Por favor, envie um arquivo .xml válido.')
+        return redirect(url_for('index'))
+
+    id_unico = str(uuid.uuid4())
+    caminho_entrada = os.path.join(UPLOAD_FOLDER, f"input_{id_unico}.xml")
+    caminho_saida = os.path.join(UPLOAD_FOLDER, f"output_{id_unico}.xlsx")
+
+    try:
+        file.save(caminho_entrada)
+        
+        tree = ET.parse(caminho_entrada)
+        root = tree.getroot()
+
+        dados = []
+        for elem in root:
+            row = {}
+            for child in elem:
+                tag_limpa = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+                row[tag_limpa] = child.text
+            if row:
+                dados.append(row)
+
+        if dados:
+            df = pd.DataFrame(dados)
+        else:
+            df = pd.read_xml(caminho_entrada)
+
+        df.to_excel(caminho_saida, index=False)
+
+    except Exception as e:
+        app.logger.error(f"Erro ao converter XML para Excel: {e}")
+        return f"Erro no processamento do XML: {e}", 500
+
+    finally:
+        if os.path.exists(caminho_entrada):
+            try:
+                os.remove(caminho_entrada)
+            except Exception as e:
+                app.logger.error(f"Erro ao apagar XML temporário: {e}")
+
+    @after_this_request
+    def apagar_excel_gerado(response):
+        try:
+            if os.path.exists(caminho_saida):
+                os.remove(caminho_saida)
+        except Exception as e:
+            app.logger.error(f"Erro ao apagar Excel de saída: {e}")
+        return response
+
+    nome_download = f"{os.path.splitext(file.filename)[0]}.xlsx"
+    return send_file(
+        caminho_saida,
+        as_attachment=True,
+        download_name=nome_download
     )
 
 if __name__ == '__main__':
