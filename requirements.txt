@@ -4,3 +4,4 @@ pdf2docx
 pandas
 openpyxl
 lxml
+PyMuPDF
