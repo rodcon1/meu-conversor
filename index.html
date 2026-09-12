@@ -35,9 +35,20 @@
     <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/337/337946.png">
 
     <style>
-        /* Mantenha todo o CSS existente do seu index.html sem alterações */
-    </style>
-</head>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
             padding: 40px 20px;
         }
 
@@ -97,7 +108,7 @@
             line-height: 1.4;
         }
 
-        /* Área de Drag & Drop Customizada */
+        /* Área Drag & Drop */
         .dropzone {
             position: relative;
             border: 2px dashed #cbd5e0;
@@ -317,7 +328,6 @@
     </footer>
 
     <script>
-        // Lógica do botão Copiar Pix
         function copiarPix() {
             var inputPix = document.getElementById("pixKey");
             inputPix.select();
@@ -334,7 +344,6 @@
             }, 2500);
         }
 
-        // Lógica de Drag & Drop e atualização de nomes dos arquivos
         document.querySelectorAll('.dropzone').forEach(zone => {
             const input = zone.querySelector('input[type="file"]');
             const label = zone.querySelector('.file-label');
