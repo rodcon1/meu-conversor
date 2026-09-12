@@ -317,7 +317,17 @@
                 <h2>📊 XML para Excel</h2>
                 <p>Transforme notas e arquivos de dados XML em tabelas organizadas em XLSX.</p>
             </div>
-            <!-- Ferramenta 4: PDF para Imagens -->
+            <form action="/xml-para-excel" method="POST" enctype="multipart/form-data">
+                <div class="dropzone">
+                    <span class="dropzone-icon">📊</span>
+                    <span class="file-label">Arraste seu arquivo XML aqui ou clique para selecionar</span>
+                    <input type="file" name="file" accept=".xml" required>
+                </div>
+                <button type="submit" class="btn">Converter para Excel</button>
+            </form>
+        </div>
+
+        <!-- Ferramenta 4: PDF para Imagens -->
         <div class="card">
             <div>
                 <h2>🗂️ PDF para Imagens</h2>
@@ -332,17 +342,6 @@
                 <button type="submit" class="btn">Extrair Imagens</button>
             </form>
         </div>
-            <form action="/xml-para-excel" method="POST" enctype="multipart/form-data">
-                <div class="dropzone">
-                    <span class="dropzone-icon">📊</span>
-                    <span class="file-label">Arraste seu arquivo XML aqui ou clique para selecionar</span>
-                    <input type="file" name="file" accept=".xml" required>
-                </div>
-                <button type="submit" class="btn">Converter para Excel</button>
-            </form>
-        </div>
-
-    </div>
 
     <!-- Bloco Pix -->
     <div class="pix-section">
