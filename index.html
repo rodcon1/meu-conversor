@@ -7,7 +7,6 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'G-8NPV4RV324');
     </script>
 
@@ -93,18 +92,45 @@
             line-height: 1.4;
         }
 
-        .file-input {
-            margin-bottom: 20px;
-            width: 100%;
-        }
-
-        .file-input input[type="file"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px dashed #cbd5e0;
-            border-radius: 8px;
+        /* Área de Drag & Drop Customizada */
+        .dropzone {
+            position: relative;
+            border: 2px dashed #cbd5e0;
+            border-radius: 10px;
+            padding: 25px 15px;
+            text-align: center;
             background-color: #f7fafc;
             cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            margin-bottom: 20px;
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: #3182ce;
+            background-color: #ebf8ff;
+        }
+
+        .dropzone input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .dropzone-icon {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .file-label {
+            font-size: 0.88rem;
+            color: #4a5568;
+            font-weight: 500;
+            word-break: break-word;
         }
 
         .btn {
@@ -124,7 +150,7 @@
             background-color: #2b6cb0;
         }
 
-        /* Seção do Pix */
+        /* Seção Pix */
         .pix-section {
             background-color: #ffffff;
             border: 2px dashed #e2e8f0;
@@ -220,7 +246,9 @@
                 <p>Converta uma ou várias imagens (JPG, PNG) em um único arquivo PDF.</p>
             </div>
             <form action="/converter" method="POST" enctype="multipart/form-data">
-                <div class="file-input">
+                <div class="dropzone">
+                    <span class="dropzone-icon">📁</span>
+                    <span class="file-label">Arraste suas imagens aqui ou clique para selecionar</span>
                     <input type="file" name="files" accept="image/*" multiple required>
                 </div>
                 <button type="submit" class="btn">Converter para PDF</button>
@@ -234,7 +262,9 @@
                 <p>Extraia o texto e formatação do seu arquivo PDF diretamente para DOCX.</p>
             </div>
             <form action="/pdf-para-word" method="POST" enctype="multipart/form-data">
-                <div class="file-input">
+                <div class="dropzone">
+                    <span class="dropzone-icon">📄</span>
+                    <span class="file-label">Arraste seu PDF aqui ou clique para selecionar</span>
                     <input type="file" name="file" accept=".pdf" required>
                 </div>
                 <button type="submit" class="btn">Converter para Word</button>
@@ -248,7 +278,9 @@
                 <p>Transforme notas e arquivos de dados XML em tabelas organizadas em XLSX.</p>
             </div>
             <form action="/xml-para-excel" method="POST" enctype="multipart/form-data">
-                <div class="file-input">
+                <div class="dropzone">
+                    <span class="dropzone-icon">📊</span>
+                    <span class="file-label">Arraste seu arquivo XML aqui ou clique para selecionar</span>
                     <input type="file" name="file" accept=".xml" required>
                 </div>
                 <button type="submit" class="btn">Converter para Excel</button>
@@ -257,7 +289,7 @@
 
     </div>
 
-    <!-- Bloco Unificado do Pix -->
+    <!-- Bloco Pix -->
     <div class="pix-section">
         <h3>☕ Gostou da ferramenta? Apoie o projeto!</h3>
         <p>Aponte a câmera do seu banco para o QR Code ou copie a chave Pix abaixo:</p>
@@ -280,6 +312,7 @@
     </footer>
 
     <script>
+        // Lógica do botão Copiar Pix
         function copiarPix() {
             var inputPix = document.getElementById("pixKey");
             inputPix.select();
@@ -294,6 +327,49 @@
                 btn.innerText = "Copiar Chave";
                 btn.style.backgroundColor = "#38a169";
             }, 2500);
+        }
+
+        // Lógica de Drag & Drop e atualização de nomes dos arquivos
+        document.querySelectorAll('.dropzone').forEach(zone => {
+            const input = zone.querySelector('input[type="file"]');
+            const label = zone.querySelector('.file-label');
+            const defaultText = label.textContent;
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                zone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    zone.classList.add('dragover');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                zone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('dragover');
+                }, false);
+            });
+
+            zone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                if (dt.files && dt.files.length > 0) {
+                    input.files = dt.files;
+                    atualizarTexto(input, label, defaultText);
+                }
+            });
+
+            input.addEventListener('change', () => {
+                atualizarTexto(input, label, defaultText);
+            });
+        });
+
+        function atualizarTexto(input, label, textPadrao) {
+            if (input.files.length > 1) {
+                label.textContent = `✓ ${input.files.length} arquivos selecionados`;
+            } else if (input.files.length === 1) {
+                label.textContent = `✓ ${input.files[0].name}`;
+            } else {
+                label.textContent = textPadrao;
+            }
         }
     </script>
 
