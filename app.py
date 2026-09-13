@@ -270,6 +270,25 @@ def pdf_para_imagem():
             return 'Erro ao processar o PDF.', 500
             
     return 'Formato inválido.', 400
+@app.route('/sitemap.xml')
+def sitemap():
+    xml = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>https://meu-conversor.onrender.com/</loc>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>
+</urlset>"""
+    return xml, 200, {'Content-Type': 'application/xml'}
+
+@app.route('/robots.txt')
+def robots():
+    txt = """User-agent: *
+Allow: /
+
+Sitemap: https://meu-conversor.onrender.com/sitemap.xml"""
+    return txt, 200, {'Content-Type': 'text/plain'}
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
