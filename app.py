@@ -289,6 +289,13 @@ Allow: /
 
 Sitemap: https://meu-conversor.onrender.com/sitemap.xml"""
     return txt, 200, {'Content-Type': 'text/plain'}
+@app.route('/politica')
+def politica():
+    return render_template('politica.html')
+
+@app.route('/termos')
+def termos():
+    return render_template('termos.html')
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
