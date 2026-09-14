@@ -28,7 +28,7 @@
     <!-- Open Graph (WhatsApp, Facebook, LinkedIn) -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://meu-conversor.onrender.com/">
-    <meta property="og:title" content="Meu Conversor Online - Ferramentas de Conversão Gratuitas">
+    <meta property="og:title" content="Meu Conversor Online - s de Conversão Gratuitas">
     <meta property="og:description" content="Converta JPG/PNG para PDF, PDF para DOCX e XML para XLSX diretamente no navegador de forma simples e rápida.">
     <meta property="og:image" content="https://cdn-icons-png.flaticon.com/512/337/337946.png">
 
@@ -351,6 +351,22 @@
             </form>
         </div>
 
+        <!-- Ferramenta: Unir PDFs -->
+        <div class="card">
+            <div>
+                <h2>📚 Unir PDFs</h2>
+                <p>Junte vários arquivos PDF em um único documento de forma rápida e organizada.</p>
+            </div>
+            <form action="/unir-pdf" method="POST" enctype="multipart/form-data">
+                <div class="dropzone">
+                    <span class="dropzone-icon">📑</span>
+                    <span class="file-label">Arraste seus PDFs aqui ou clique para selecionar</span>
+                    <input type="file" name="files" accept=".pdf" multiple required>
+                </div>
+                <button type="submit" class="btn">Unir PDFs</button>
+            </form>
+        </div>
+        
     <!-- Bloco Pix -->
     <div class="pix-section">
         <h3>☕ Gostou da ferramenta? Apoie o projeto!</h3>
