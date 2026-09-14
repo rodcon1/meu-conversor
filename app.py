@@ -20,6 +20,29 @@ app.jinja_loader = jinja2.ChoiceLoader([
     jinja2.FileSystemLoader(os.path.join(diretorio_atual, 'templates')),
 ])
 
+@app.route('/unir-pdf', methods=['POST'])
+def unir_pdf():
+    uploaded_files = request.files.getlist("files")
+    
+    # Cria um novo documento PDF vazio que vai receber as páginas
+    merged_pdf = fitz.open()
+    
+    for file in uploaded_files:
+        if file and file.filename.lower().endswith('.pdf'):
+            # Lê o arquivo enviado diretamente da memória
+            file_bytes = file.read()
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            # Insere todas as páginas do PDF atual no documento final
+            merged_pdf.insert_pdf(doc)
+            
+    # Salva o arquivo resultante temporariamente
+    output_filename = f"unido_{uuid.uuid4().hex}.pdf"
+    output_path = os.path.join("/tmp", output_filename)
+    merged_pdf.save(output_path)
+    merged_pdf.close()
+    
+    return send_file(output_path, as_attachment=True, download_name="documento_unido.pdf")
+
 # Pasta temporária para uploads
 UPLOAD_FOLDER = os.path.join(diretorio_atual, 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
