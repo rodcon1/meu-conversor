@@ -286,14 +286,15 @@
                 <h2>🖼️ Imagem para PDF</h2>
                 <p>Converta uma ou várias imagens (JPG, PNG) em um único arquivo PDF.</p>
             </div>
-            <form action="/converter" method="POST" enctype="multipart/form-data">
-                <div class="dropzone">
-                    <span class="dropzone-icon">📁</span>
-                    <span class="file-label">Arraste suas imagens aqui ou clique para selecionar</span>
-                    <input type="file" name="file" accept="image/*" multiple required>
-                </div>
-                <button type="submit" class="btn">Converter para PDF</button>
-            </form>
+            <form action="/sua-rota-de-conversao" method="POST" enctype="multipart/form-data">
+    
+            <!-- O input unificado que abre o menu nativo do celular (Câmera, Galeria ou Arquivos) -->
+            <label for="file-upload" class="btn-acao">📂 Selecionar Arquivo ou Tirar Foto</label>
+            <input id="file-upload" type="file" name="file" accept="image/*,.pdf" style="display: none;" required>
+
+            <!-- Botão para enviar/processar -->
+            <button type="submit" class="btn">Converter Agora</button>
+        </form>
         </div>
 
         <!-- Ferramenta 2: PDF para Word -->
@@ -351,11 +352,11 @@
                 <p>Junte vários arquivos PDF em um único documento de forma rápida e organizada.</p>
             </div>
             <form action="/unir-pdf" method="POST" enctype="multipart/form-data">
-                <div class="dropzone">
-                    <span class="dropzone-icon">📑</span>
-                    <span class="file-label">Arraste seus PDFs aqui ou clique para selecionar</span>
-                    <input type="file" name="files" accept=".pdf" multiple required>
-                </div>
+                
+                <!-- Botão customizado para Unir PDFs (com multiple para aceitar mais de um arquivo) -->
+                <label for="file-upload-unir" class="btn-acao">📂 Selecionar Arquivos PDF</label>
+                <input id="file-upload-unir" type="file" name="files" accept=".pdf" multiple style="display: none;" required>
+
                 <button type="submit" class="btn">Unir PDFs</button>
             </form>
         </div>
