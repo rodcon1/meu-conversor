@@ -9,7 +9,7 @@ import pymupdf  # PyMuPDF (utilizado para PDFs)
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
-# Inicializa o aplicativo Flask
+# 1. Inicializa o aplicativo Flask PRIMEIRO
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
@@ -21,12 +21,38 @@ app.jinja_loader = jinja2.ChoiceLoader([
     jinja2.FileSystemLoader(os.path.join(diretorio_atual, 'templates')),
 ])
 
-# Rota principal (Home)
+# Pasta temporária para uploads
+UPLOAD_FOLDER = os.path.join(diretorio_atual, 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp', 'heic'}
+
+def arquivo_permitido(filename, extensoes_permitidas):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensoes_permitidas
+
+# ---------------------------------------------------------
+# ROTAS PRINCIPAIS E DE NAVEGAÇÃO
+# ---------------------------------------------------------
 @app.route('/')
 def index():
     return render_template('index.html')
 
-# Rota para Unir PDFs
+@app.route('/politica')
+def politica():
+    return render_template('politica.html')
+
+@app.route('/termos')
+def termos():
+    return render_template('termos.html')
+
+# Rota para carregar a imagem do QR Code do Pix
+@app.route('/pix-qr.png')
+def serve_pix_qr():
+    return send_from_directory(diretorio_atual, 'pix-qr.png')
+
+# ---------------------------------------------------------
+# 1. ROTA: UNIR PDFS (Usando PyMuPDF)
+# ---------------------------------------------------------
 @app.route('/unir-pdf', methods=['POST'])
 def unir_pdf():
     uploaded_files = request.files.getlist("files")
@@ -46,71 +72,8 @@ def unir_pdf():
     
     return send_file(output_path, as_attachment=True, download_name="documentos_unidos.pdf")
 
-if __name__ == '__main__':
-    app.run(debug=True)
-    
-app = Flask(__name__)
-app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
-
-# Configura o Flask para buscar páginas na raiz ou na pasta 'templates'
-diretorio_atual = os.path.dirname(os.path.abspath(__file__))
-app.jinja_loader = jinja2.ChoiceLoader([
-    app.jinja_loader,
-    jinja2.FileSystemLoader(diretorio_atual),
-    jinja2.FileSystemLoader(os.path.join(diretorio_atual, 'templates')),
-])
-
-@app.route('/unir-pdf', methods=['POST'])
-def unir_pdf():
-    uploaded_files = request.files.getlist("files")
-    
-    # Cria um novo documento PDF vazio que vai receber as páginas
-    merged_pdf = pymupdf.open()
-    
-    for file in uploaded_files:
-        if file and file.filename.lower().endswith('.pdf'):
-            # Lê o arquivo enviado diretamente da memória
-            file_bytes = file.read()
-            doc = pymupdf.open(stream=file_bytes, filetype="pdf")
-            # Insere todas as páginas do PDF atual no documento final
-            merged_pdf.insert_pdf(doc)
-            
-    # Salva o arquivo resultante temporariamente
-    output_filename = f"unido_{uuid.uuid4().hex}.pdf"
-    output_path = os.path.join("/tmp", output_filename)
-    merged_pdf.save(output_path)
-    merged_pdf.close()
-    
-    return send_file(output_path, as_attachment=True, download_name="documento_unido.pdf")
-
-# Pasta temporária para uploads
-UPLOAD_FOLDER = os.path.join(diretorio_atual, 'uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp', 'heic'}
-
-def arquivo_permitido(filename, extensoes_permitidas):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensoes_permitidas
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/politica')
-def politica():
-    return render_template('politica.html')
-
-@app.route('/termos')
-def termos():
-    return render_template('termos.html')
-
-# Rota para carregar a imagem do QR Code do Pix
-@app.route('/pix-qr.png')
-def serve_pix_qr():
-    return send_from_directory(diretorio_atual, 'pix-qr.png')
-
 # ---------------------------------------------------------
-# 1. ROTA: IMAGENS PARA PDF
+# 2. ROTA: IMAGENS PARA PDF
 # ---------------------------------------------------------
 @app.route('/converter', methods=['POST'])
 @app.route('/converter-imagem-pdf', methods=['POST'])
@@ -180,7 +143,7 @@ def converter_imagem_pdf():
     )
 
 # ---------------------------------------------------------
-# 2. ROTA: PDF PARA WORD (.docx)
+# 3. ROTA: PDF PARA WORD (.docx)
 # ---------------------------------------------------------
 @app.route('/pdf-para-word', methods=['POST'])
 @app.route('/converter-pdf-word', methods=['POST'])
@@ -233,7 +196,7 @@ def converter_pdf_word():
     )
 
 # ---------------------------------------------------------
-# 3. ROTA: XML PARA EXCEL (.xlsx)
+# 4. ROTA: XML PARA EXCEL (.xlsx)
 # ---------------------------------------------------------
 @app.route('/xml-para-excel', methods=['POST'])
 @app.route('/converter-xml-xlsx', methods=['POST'])
@@ -299,6 +262,10 @@ def converter_xml_xlsx():
         as_attachment=True,
         download_name=nome_download
     )
+
+# ---------------------------------------------------------
+# 5. ROTA: PDF PARA IMAGEM (.zip)
+# ---------------------------------------------------------
 @app.route('/pdf-para-imagem', methods=['POST'])
 def pdf_para_imagem():
     if 'file' not in request.files:
@@ -333,6 +300,10 @@ def pdf_para_imagem():
             return 'Erro ao processar o PDF.', 500
             
     return 'Formato inválido.', 400
+
+# ---------------------------------------------------------
+# ROTAS DE SEO (Sitemap e Robots)
+# ---------------------------------------------------------
 @app.route('/sitemap.xml')
 def sitemap():
     xml = """<?xml version="1.0" encoding="UTF-8"?>
@@ -352,13 +323,10 @@ Allow: /
 
 Sitemap: https://meu-conversor.onrender.com/sitemap.xml"""
     return txt, 200, {'Content-Type': 'text/plain'}
-@app.route('/politica')
-def politica_page():
-    return render_template('politica.html')
 
-@app.route('/termos')
-def termos_page():
-    return render_template('termos.html')
+# ---------------------------------------------------------
+# INICIALIZAÇÃO DO SERVIDOR (Sempre no final)
+# ---------------------------------------------------------
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
