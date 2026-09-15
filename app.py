@@ -5,8 +5,8 @@ import io
 import xml.etree.ElementTree as ET
 import pandas as pd
 import jinja2
-import pymupdf
-import docx
+import pymupdf  # PyMuPDF (utilizado para PDFs)
+import docx     # Biblioteca para ler arquivos .docx
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
@@ -22,7 +22,7 @@ app.jinja_loader = jinja2.ChoiceLoader([
     jinja2.FileSystemLoader(os.path.join(diretorio_atual, 'templates')),
 ])
 
-# 2. Agora sim, a rota do Word para PDF
+# 2. Rota para Word para PDF
 @app.route('/word-para-pdf', methods=['POST'])
 def word_para_pdf():
     if 'file' not in request.files:
@@ -43,7 +43,7 @@ def word_para_pdf():
             doc_docx = docx.Document(temp_docx_path)
             
             pdf_doc = pymupdf.open()
-            page = pymupdf.new_page()
+            page = pdf_doc.new_page()
             
             cursor_y = 50
             margin_x = 50
@@ -58,7 +58,7 @@ def word_para_pdf():
                 rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
                 
                 if cursor_y > page.rect.height - 50:
-                    page = pymupdf.new_page()
+                    page = pdf_doc.new_page()
                     cursor_y = 50
                     rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
                 
