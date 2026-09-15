@@ -5,12 +5,12 @@ import io
 import xml.etree.ElementTree as ET
 import pandas as pd
 import jinja2
-import pymupdf  # PyMuPDF (utilizado para PDFs)
-import docx     # Biblioteca para ler arquivos .docx
+import pymupdf
+import docx
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
-# 1. Inicializa o aplicativo Flask PRIMEIRO (isso resolve o NameError)
+# 1. Inicializa o aplicativo Flask PRIMEIRO (obrigatório antes de usar @app.route)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
@@ -22,7 +22,7 @@ app.jinja_loader = jinja2.ChoiceLoader([
     jinja2.FileSystemLoader(os.path.join(diretorio_atual, 'templates')),
 ])
 
-# 2. Agora as rotas podem vir logo abaixo com total segurança
+# 2. Agora sim, a rota do Word para PDF
 @app.route('/word-para-pdf', methods=['POST'])
 def word_para_pdf():
     if 'file' not in request.files:
@@ -34,19 +34,16 @@ def word_para_pdf():
         
     if file and file.filename.lower().endswith('.docx'):
         try:
-            # Lê o arquivo .docx diretamente da memória
             file_bytes = file.read()
             temp_docx_path = os.path.join("/tmp", f"temp_{uuid.uuid4().hex}.docx")
             
-            # Salva temporariamente para leitura do python-docx
             with open(temp_docx_path, "wb") as f:
                 f.write(file_bytes)
                 
             doc_docx = docx.Document(temp_docx_path)
             
-            # Cria um novo documento PDF limpo usando pymupdf
             pdf_doc = pymupdf.open()
-            page = pymupdf.new_page() # Cria a primeira página
+            page = pymupdf.new_page()
             
             cursor_y = 50
             margin_x = 50
@@ -61,7 +58,7 @@ def word_para_pdf():
                 rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
                 
                 if cursor_y > page.rect.height - 50:
-                    page = pdf_doc.new_page()
+                    page = pymupdf.new_page()
                     cursor_y = 50
                     rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
                 
