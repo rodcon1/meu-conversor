@@ -9,6 +9,8 @@ import jinja2
 import pymupdf # PyMuPDF (já utilizado no seu projeto para PDFs)
 import docx # Biblioteca para ler arquivos .docx (pip install python-docx)
 import uuid
+from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
+from PIL import Image
 
 @app.route('/word-para-pdf', methods=['POST'])
 def word_para_pdf():
@@ -75,8 +77,7 @@ def word_para_pdf():
             return f"Erro ao converter o arquivo: {str(e)}", 500
             
     return "Formato inválido. Envie um arquivo .docx", 400
-from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
-from PIL import Image
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
