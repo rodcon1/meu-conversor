@@ -1,12 +1,12 @@
 import zipfile
 import io
-import fitz  # Esta é a biblioteca PyMuPDF
+import pymupdf  # Esta é a biblioteca PyMuPDF
 import os
 import uuid
 import xml.etree.ElementTree as ET
 import pandas as pd
 import jinja2
-import fitz # PyMuPDF (já utilizado no seu projeto para PDFs)
+import pymupdf # PyMuPDF (já utilizado no seu projeto para PDFs)
 import docx # Biblioteca para ler arquivos .docx (pip install python-docx)
 import uuid
 
@@ -32,7 +32,7 @@ def word_para_pdf():
             doc_docx = docx.Document(temp_docx_path)
             
             # Cria um novo documento PDF limpo usando PyMuPDF
-            pdf_doc = fitz.open()
+            pdf_doc = pymupdf.open()
             page = pdf_doc.new_page() # Cria a primeira página
             
             # Configurações iniciais de margem e posição do texto no PDF
@@ -47,13 +47,13 @@ def word_para_pdf():
                     continue
                 
                 # Insere o texto linha por linha de forma formatada no PDF
-                rect = fitz.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
+                rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
                 
                 # Se o texto ultrapassar a página atual, cria uma nova página automaticamente
                 if cursor_y > page.rect.height - 50:
                     page = pdf_doc.new_page()
                     cursor_y = 50
-                    rect = fitz.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
+                    rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
                 
                 # Insere o texto no PDF
                 rc = page.insert_textbox(rect, text, fontsize=11, fontname="helv", color=(0, 0, 0))
@@ -94,13 +94,13 @@ def unir_pdf():
     uploaded_files = request.files.getlist("files")
     
     # Cria um novo documento PDF vazio que vai receber as páginas
-    merged_pdf = fitz.open()
+    merged_pdf = pymupdf.open()
     
     for file in uploaded_files:
         if file and file.filename.lower().endswith('.pdf'):
             # Lê o arquivo enviado diretamente da memória
             file_bytes = file.read()
-            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            doc = pymupdf.open(stream=file_bytes, filetype="pdf")
             # Insere todas as páginas do PDF atual no documento final
             merged_pdf.insert_pdf(doc)
             
@@ -339,7 +339,7 @@ def pdf_para_imagem():
 
     if file and file.filename.lower().endswith('.pdf'):
         try:
-            pdf_document = fitz.open(stream=file.read(), filetype="pdf")
+            pdf_document = pymupdf.open(stream=file.read(), filetype="pdf")
             memory_zip = io.BytesIO()
             
             with zipfile.ZipFile(memory_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
