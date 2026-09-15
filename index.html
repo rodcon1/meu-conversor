@@ -280,21 +280,22 @@
 
     <div class="container">
         
-        <!-- Ferramenta 1: Imagens para PDF -->
+        <!-- Ferramenta 1: Imagem para PDF -->
         <div class="card">
             <div>
                 <h2>🖼️ Imagem para PDF</h2>
                 <p>Converta uma ou várias imagens (JPG, PNG) em um único arquivo PDF.</p>
             </div>
             <form action="/sua-rota-de-conversao" method="POST" enctype="multipart/form-data">
-    
-            <!-- O input unificado que abre o menu nativo do celular (Câmera, Galeria ou Arquivos) -->
-            <label for="file-upload" class="btn-acao">📂 Selecionar Arquivo ou Tirar Foto</label>
-            <input id="file-upload" type="file" name="file" accept="image/*,.pdf" style="display: none;" required>
+                
+                <!-- Caixa pontilhada padrão -->
+                <label for="file-upload-img" class="dropzone" style="display: block; border: 2px dashed #a0aec0; padding: 20px; text-align: center; border-radius: 8px; cursor: pointer; margin-bottom: 15px;">
+                    📂 <br> Arraste suas imagens aqui ou clique para selecionar
+                </label>
+                <input id="file-upload-img" type="file" name="file" accept="image/*" multiple style="display: none;" required>
 
-            <!-- Botão para enviar/processar -->
-            <button type="submit" class="btn">Converter Agora</button>
-        </form>
+                <button type="submit" class="btn">Converter Agora</button>
+            </form>
         </div>
 
         <!-- Ferramenta 2: PDF para Word -->
@@ -345,16 +346,18 @@
             </form>
         </div>
 
-        <!-- Ferramenta: Unir PDFs -->
+        <!-- Ferramenta 5: Unir PDFs -->
         <div class="card">
             <div>
-                <h2>📚 Unir PDFs</h2>
+                <h2>📁 Unir PDFs</h2>
                 <p>Junte vários arquivos PDF em um único documento de forma rápida e organizada.</p>
             </div>
             <form action="/unir-pdf" method="POST" enctype="multipart/form-data">
                 
-                <!-- Botão customizado para Unir PDFs (com multiple para aceitar mais de um arquivo) -->
-                <label for="file-upload-unir" class="btn-acao">📂 Selecionar Arquivos PDF</label>
+                <!-- Caixa pontilhada padrão -->
+                <label for="file-upload-unir" class="dropzone" style="display: block; border: 2px dashed #a0aec0; padding: 20px; text-align: center; border-radius: 8px; cursor: pointer; margin-bottom: 15px;">
+                    📁 <br> Arraste seus PDFs aqui ou clique para selecionar
+                </label>
                 <input id="file-upload-unir" type="file" name="files" accept=".pdf" multiple style="display: none;" required>
 
                 <button type="submit" class="btn">Unir PDFs</button>
