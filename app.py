@@ -6,6 +6,27 @@ import uuid
 import xml.etree.ElementTree as ET
 import pandas as pd
 import jinja2
+import os
+from flask import Flask, render_template, request, send_file
+# Se estiver usando render (Linux), o LibreOffice costuma vir pré-instalado em muitos ambientes, 
+# ou podemos usar bibliotecas específicas. 
+# Vamos criar a rota base para receber o arquivo .docx:
+
+@app.route('/word-para-pdf', methods=['POST'])
+def word_para_pdf():
+    if 'file' not in request.files:
+        return "Nenhum arquivo enviado", 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return "Nenhum arquivo selecionado", 400
+        
+    if file and file.filename.endswith('.docx'):
+        # Lógica de salvamento e conversão do arquivo .docx para .pdf
+        # (Aqui você processa com a biblioteca escolhida e retorna o PDF convertido)
+        pass
+        
+    return "Formato inválido. Envie um arquivo .docx", 400
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
