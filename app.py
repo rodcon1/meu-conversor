@@ -6,11 +6,10 @@ import xml.etree.ElementTree as ET
 import pandas as pd
 import jinja2
 import pymupdf  # PyMuPDF (utilizado para PDFs)
-import docx     # Biblioteca para ler arquivos .docx
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
-# 1. Inicializa o aplicativo Flask PRIMEIRO (obrigatório antes de usar @app.route)
+# Inicializa o aplicativo Flask
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
@@ -22,131 +21,34 @@ app.jinja_loader = jinja2.ChoiceLoader([
     jinja2.FileSystemLoader(os.path.join(diretorio_atual, 'templates')),
 ])
 
-# 2. Rota para Word para PDF
-@app.route('/word-para-pdf', methods=['POST'])
-def word_para_pdf():
-    if 'file' not in request.files:
-        return "Nenhum arquivo enviado", 400
+# Rota principal (Home)
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+# Rota para Unir PDFs
+@app.route('/unir-pdf', methods=['POST'])
+def unir_pdf():
+    uploaded_files = request.files.getlist("files")
     
-    file = request.files['file']
-    if file.filename == '':
-        return "Nenhum arquivo selecionado", 400
-        
-    if file and file.filename.lower().endswith('.docx'):
-        try:
-            file_bytes = file.read()
-            temp_docx_path = os.path.join("/tmp", f"temp_{uuid.uuid4().hex}.docx")
-            
-            with open(temp_docx_path, "wb") as f:
-                f.write(file_bytes)
-                
-            doc_docx = docx.Document(temp_docx_path)
-            
-            pdf_doc = pymupdf.open()
-            page = pdf_doc.new_page()
-            
-            cursor_y = 50
-            margin_x = 50
-            max_width = page.rect.width - (2 * margin_x)
-            
-            for para in doc_docx.paragraphs:
-                text = para.text
-                if text.strip() == "":
-                    cursor_y += 15 
-                    continue
-                
-                rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
-                
-                if cursor_y > page.rect.height - 50:
-                    page = pdf_doc.new_page()
-                    cursor_y = 50
-                    rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
-                
-                page.insert_textbox(rect, text, fontsize=11, fontname="helv", color=(0, 0, 0))
-                cursor_y += 25 
-            
-            if os.path.exists(temp_docx_path):
-                os.remove(temp_docx_path)
-                
-            output_filename = f"convertido_{uuid.uuid4().hex}.pdf"
-            output_path = os.path.join("/tmp", output_filename)
-            pdf_doc.save(output_path)
-            pdf_doc.close()
-            
-            return send_file(output_path, as_attachment=True, download_name="documento_convertido.pdf")
-            
-        except Exception as e:
-            return f"Erro ao converter o arquivo: {str(e)}", 500
-            
-    return "Formato inválido. Envie um arquivo .docx", 400
-
-@app.route('/word-para-pdf', methods=['POST'])
-def word_para_pdf():
-    if 'file' not in request.files:
-        return "Nenhum arquivo enviado", 400
+    merged_pdf = pymupdf.open()
     
-    file = request.files['file']
-    if file.filename == '':
-        return "Nenhum arquivo selecionado", 400
-        
-    if file and file.filename.lower().endswith('.docx'):
-        try:
-            # Lê o arquivo .docx diretamente da memória
+    for file in uploaded_files:
+        if file and file.filename.lower().endswith('.pdf'):
             file_bytes = file.read()
-            temp_docx_path = os.path.join("/tmp", f"temp_{uuid.uuid4().hex}.docx")
+            doc = pymupdf.open(stream=file_bytes, filetype="pdf")
+            merged_pdf.insert_pdf(doc)
             
-            # Salva temporariamente para leitura do python-docx
-            with open(temp_docx_path, "wb") as f:
-                f.write(file_bytes)
-                
-            doc_docx = docx.Document(temp_docx_path)
-            
-            # Cria um novo documento PDF limpo usando PyMuPDF
-            pdf_doc = pymupdf.open()
-            page = pdf_doc.new_page() # Cria a primeira página
-            
-            # Configurações iniciais de margem e posição do texto no PDF
-            cursor_y = 50
-            margin_x = 50
-            max_width = page.rect.width - (2 * margin_x)
-            
-            for para in doc_docx.paragraphs:
-                text = para.text
-                if text.strip() == "":
-                    cursor_y += 15 # Espaço entre parágrafos vazios
-                    continue
-                
-                # Insere o texto linha por linha de forma formatada no PDF
-                rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
-                
-                # Se o texto ultrapassar a página atual, cria uma nova página automaticamente
-                if cursor_y > page.rect.height - 50:
-                    page = pdf_doc.new_page()
-                    cursor_y = 50
-                    rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
-                
-                # Insere o texto no PDF
-                rc = page.insert_textbox(rect, text, fontsize=11, fontname="helv", color=(0, 0, 0))
-                cursor_y += 25 # Incrementa a altura para o próximo parágrafo
-            
-            # Remove o arquivo temporário do .docx
-            if os.path.exists(temp_docx_path):
-                os.remove(temp_docx_path)
-                
-            # Salva o PDF gerado
-            output_filename = f"convertido_{uuid.uuid4().hex}.pdf"
-            output_path = os.path.join("/tmp", output_filename)
-            pdf_doc.save(output_path)
-            pdf_doc.close()
-            
-            return send_file(output_path, as_attachment=True, download_name="documento_convertido.pdf")
-            
-        except Exception as e:
-            return f"Erro ao converter o arquivo: {str(e)}", 500
-            
-    return "Formato inválido. Envie um arquivo .docx", 400
+    output_filename = f"unido_{uuid.uuid4().hex}.pdf"
+    output_path = os.path.join("/tmp", output_filename)
+    merged_pdf.save(output_path)
+    merged_pdf.close()
+    
+    return send_file(output_path, as_attachment=True, download_name="documentos_unidos.pdf")
 
-
+if __name__ == '__main__':
+    app.run(debug=True)
+    
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
