@@ -21,15 +21,15 @@
     <meta property="og:url" content="https://meu-conversor-1edl.onrender.com">
     <meta property="og:type" content="website">
     
-    <meta name="description" content="Converta imagens para PDF, PDF para Word e XML para Excel online de forma rápida, gratuita e sem instalação.">
-    <meta name="keywords" content="converter imagem em pdf, pdf para word, xml para excel, conversor online gratis">
+    <meta name="description" content="Converta imagens para PDF e XML para Excel online de forma rápida, gratuita e sem instalação.">
+    <meta name="keywords" content="converter imagem em pdf, xml para excel, unir pdf, conversor online gratis">
     <meta name="author" content="Meu Conversor">
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://meu-conversor.onrender.com/">
+    <meta name="twitter:url" content="https://meu-conversor-1edl.onrender.com/">
     <meta name="twitter:title" content="Meu Conversor Online - Ferramentas de Conversão Gratuitas">
-    <meta name="twitter:description" content="Converta JPG/PNG para PDF, PDF para DOCX e XML para XLSX diretamente no navegador.">
+    <meta name="twitter:description" content="Converta JPG/PNG para PDF, Unir PDFs e XML para XLSX diretamente no navegador.">
     <meta name="twitter:image" content="https://cdn-icons-png.flaticon.com/512/337/337946.png">
 
     <!-- Favicon (Ícone da aba do navegador) -->
@@ -109,6 +109,7 @@
             cursor: pointer;
             transition: all 0.2s ease-in-out;
             margin-bottom: 20px;
+            display: block;
         }
 
         .dropzone:hover, .dropzone.dragover {
@@ -287,82 +288,82 @@
                 <p>Converta uma ou várias imagens (JPG, PNG) em um único arquivo PDF.</p>
             </div>
             <form action="/converter-imagem-pdf" method="POST" enctype="multipart/form-data">
-                
-                <!-- Caixa pontilhada padrão -->
-                <label for="file-upload-img" class="dropzone" style="display: block; border: 2px dashed #a0aec0; padding: 20px; text-align: center; border-radius: 8px; cursor: pointer; margin-bottom: 15px;">
-                    📂 <br> Arraste suas imagens aqui ou clique para selecionar
+                <label class="dropzone">
+                    <span class="dropzone-icon">🖼️</span>
+                    <span class="file-label">Arraste suas imagens aqui ou clique para selecionar</span>
+                    <input type="file" name="files" accept="image/*" multiple required>
                 </label>
-                <input id="file-upload-img" type="file" name="file" accept="image/*" multiple style="display: none;" required>
-
                 <button type="submit" class="btn">Converter Agora</button>
             </form>
         </div>
 
-        <!-- Ferramenta 2: PDF para Word -->
+        <!-- Ferramenta 2: PDF para Word (Desativada temporariamente para manter o deploy estável no Render) -->
+        <!-- 
         <div class="card">
             <div>
                 <h2>📄 PDF para Word</h2>
                 <p>Extraia o texto e formatação do seu arquivo PDF diretamente para DOCX.</p>
             </div>
-            <form action="/pdf-para-word" method="POST" enctype="multipart/form-data">
-                <div class="dropzone">
+            <form action="/word-para-pdf" method="POST" enctype="multipart/form-data">
+                <label class="dropzone">
                     <span class="dropzone-icon">📄</span>
                     <span class="file-label">Arraste seu PDF aqui ou clique para selecionar</span>
                     <input type="file" name="file" accept=".pdf" required>
-                </div>
+                </label>
                 <button type="submit" class="btn">Converter para Word</button>
             </form>
         </div>
+        -->
 
-        <!-- Ferramenta 3: XML para Excel -->
-        <div class="card">
-            <div>
-                <h2>📊 XML para Excel</h2>
-                <p>Transforme notas e arquivos de dados XML em tabelas organizadas em XLSX.</p>
-            </div>
-            <form action="/xml-para-excel" method="POST" enctype="multipart/form-data">
-                <div class="dropzone">
-                    <span class="dropzone-icon">📊</span>
-                    <span class="file-label">Arraste seu arquivo XML aqui ou clique para selecionar</span>
-                    <input type="file" name="file" accept=".xml" required>
-                </div>
-                <button type="submit" class="btn">Converter para Excel</button>
-            </form>
-        </div>
-
-        <!-- Ferramenta 4: PDF para Imagens -->
-        <div class="card">
-            <div>
-                <h2>🗂️ PDF para Imagens</h2>
-                <p>Extraia todas as páginas de um PDF e baixe como imagens (PNG) em um arquivo ZIP.</p>
-            </div>
-            <form action="/pdf-para-imagem" method="POST" enctype="multipart/form-data">
-                <div class="dropzone">
-                    <span class="dropzone-icon">🗂️</span>
-                    <span class="file-label">Arraste seu PDF aqui ou clique para selecionar</span>
-                    <input type="file" name="file" accept=".pdf" required>
-                </div>
-                <button type="submit" class="btn">Extrair Imagens</button>
-            </form>
-        </div>
-
-        <!-- Ferramenta 5: Unir PDFs -->
+        <!-- Ferramenta 3: Unir PDFs -->
         <div class="card">
             <div>
                 <h2>📁 Unir PDFs</h2>
                 <p>Junte vários arquivos PDF em um único documento de forma rápida e organizada.</p>
             </div>
             <form action="/unir-pdf" method="POST" enctype="multipart/form-data">
-                
-                <!-- Caixa pontilhada padrão -->
-                <label for="file-upload-unir" class="dropzone" style="display: block; border: 2px dashed #a0aec0; padding: 20px; text-align: center; border-radius: 8px; cursor: pointer; margin-bottom: 15px;">
-                    📁 <br> Arraste seus PDFs aqui ou clique para selecionar
+                <label class="dropzone">
+                    <span class="dropzone-icon">📁</span>
+                    <span class="file-label">Arraste seus PDFs aqui ou clique para selecionar</span>
+                    <input type="file" name="files" accept=".pdf" multiple required>
                 </label>
-                <input id="file-upload-unir" type="file" name="files" accept=".pdf" multiple style="display: none;" required>
-
                 <button type="submit" class="btn">Unir PDFs</button>
             </form>
         </div>
+
+        <!-- Ferramenta 4: XML para Excel -->
+        <div class="card">
+            <div>
+                <h2>📊 XML para Excel</h2>
+                <p>Transforme notas e arquivos de dados XML em tabelas organizadas em XLSX.</p>
+            </div>
+            <form action="/xml-para-excel" method="POST" enctype="multipart/form-data">
+                <label class="dropzone">
+                    <span class="dropzone-icon">📊</span>
+                    <span class="file-label">Arraste seu arquivo XML aqui ou clique para selecionar</span>
+                    <input type="file" name="file" accept=".xml" required>
+                </label>
+                <button type="submit" class="btn">Converter para Excel</button>
+            </form>
+        </div>
+
+        <!-- Ferramenta 5: PDF para Imagens -->
+        <div class="card">
+            <div>
+                <h2>🗂️ PDF para Imagens</h2>
+                <p>Extraia todas as páginas de um PDF e baixe como imagens (PNG) em um arquivo ZIP.</p>
+            </div>
+            <form action="/pdf-para-imagem" method="POST" enctype="multipart/form-data">
+                <label class="dropzone">
+                    <span class="dropzone-icon">🗂️</span>
+                    <span class="file-label">Arraste seu PDF aqui ou clique para selecionar</span>
+                    <input type="file" name="file" accept=".pdf" required>
+                </label>
+                <button type="submit" class="btn">Extrair Imagens</button>
+            </form>
+        </div>
+
+    </div> <!-- Fim da div container -->
 
     <!-- Bloco Pix -->
     <div class="pix-section">
@@ -404,11 +405,11 @@
             }, 2500);
         }
 
-        // Lógica de Drag & Drop
+        // Lógica Unificada de Drag & Drop e atualização visual de arquivos
         document.querySelectorAll('.dropzone').forEach(zone => {
             const input = zone.querySelector('input[type="file"]');
             const label = zone.querySelector('.file-label');
-            const defaultText = label.textContent;
+            const defaultText = label ? label.textContent : '';
 
             ['dragenter', 'dragover'].forEach(eventName => {
                 zone.addEventListener(eventName, (e) => {
@@ -438,27 +439,32 @@
         });
 
         function atualizarTexto(input, label, textPadrao) {
+            if (!label) return;
             if (input.files.length > 1) {
                 label.textContent = `✓ ${input.files.length} arquivos selecionados`;
+                label.style.color = '#2b6cb0';
+                label.style.fontWeight = 'bold';
             } else if (input.files.length === 1) {
                 label.textContent = `✓ ${input.files[0].name}`;
+                label.style.color = '#2b6cb0';
+                label.style.fontWeight = 'bold';
             } else {
                 label.textContent = textPadrao;
+                label.style.color = '#4a5568';
+                label.style.fontWeight = '500';
             }
         }
 
         // Lógica de Conversão Assíncrona (Fetch API + Reset Automático)
         document.querySelectorAll('form').forEach(form => {
-            // Ignora formulários que não possuem ação de conversão
             if (!form.action) return;
 
             form.addEventListener('submit', async function(e) {
-                e.preventDefault(); // Evita o recarregamento tradicional da página
+                e.preventDefault();
 
                 const btn = form.querySelector('button[type="submit"]');
                 const textoOriginal = btn.innerText;
 
-                // Ativa o spinner e desabilita o botão durante o envio
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner"></span> Convertendo...';
 
@@ -473,14 +479,12 @@
                         throw new Error('Falha no processamento do arquivo.');
                     }
 
-                    // Captura o nome do arquivo se enviado pelo servidor ou gera um padrão
                     let filename = 'arquivo_convertido';
                     const disposition = response.headers.get('Content-Disposition');
                     if (disposition && disposition.includes('filename=')) {
                         filename = disposition.split('filename=')[1].replace(/["']/g, '');
                     }
 
-                    // Recebe o arquivo e dispara o download automático no navegador
                     const blob = await response.blob();
                     const downloadUrl = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -491,18 +495,18 @@
                     a.remove();
                     window.URL.revokeObjectURL(downloadUrl);
 
-                    // Reseta o campo de seleção para permitir novo envio imediato
                     form.reset();
                     const label = form.querySelector('.file-label');
                     if (label) {
                         label.textContent = 'Arraste seu arquivo aqui ou clique para selecionar';
+                        label.style.color = '#4a5568';
+                        label.style.fontWeight = '500';
                     }
 
                 } catch (error) {
                     alert('Ocorreu um erro durante a conversão. Verifique o arquivo e tente novamente.');
                     console.error(error);
                 } finally {
-                    // Restaura o botão original instantaneamente após a conclusão
                     btn.disabled = false;
                     btn.innerHTML = textoOriginal;
                 }
