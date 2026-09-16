@@ -75,53 +75,72 @@ def unir_pdf():
 # ---------------------------------------------------------
 # 2. ROTA: IMAGENS PARA PDF
 # ---------------------------------------------------------
+@app.route('/converter', methods=['POST'])
 @app.route('/converter-imagem-pdf', methods=['POST'])
 def converter_imagem_pdf():
-    # Pega os arquivos enviados (seja pelo input 'files' ou 'file')
-    uploaded_files = request.files.getlist("files") if "files" in request.files else request.files.getlist("file")
-    
-    if not uploaded_files or uploaded_files[0].filename == '':
-        flash('Nenhum arquivo de imagem selecionado.')
+    if 'files' not in request.files and 'file' not in request.files:
+        flash('Nenhum arquivo enviado.')
         return redirect(url_for('index'))
-        
+
+    files = request.files.getlist('files') or [request.files.get('file')]
+
+    if not files or files[0].filename == '':
+        flash('Nenhum arquivo selecionado.')
+        return redirect(url_for('index'))
+
+    id_unico = str(uuid.uuid4())
+    caminho_saida = os.path.join(UPLOAD_FOLDER, f"output_{id_unico}.pdf")
+    arquivos_temporarios = []
+
     try:
-        image_list = []
-        temp_files = []
-        
-        for file in uploaded_files:
-            if file and file.filename != '':
-                # Salva a imagem temporariamente
-                temp_path = os.path.join("/tmp", f"img_{uuid.uuid4().hex}.png")
-                file.save(temp_path)
-                temp_files.append(temp_path)
-                
-                # Abre com a PIL e converte para RGB (obrigatório para criar PDF)
-                img = Image.open(temp_path)
+        imagens_pil = []
+        for file in files:
+            if file and arquivo_permitido(file.filename, ALLOWED_IMAGE_EXTENSIONS):
+                extensao = file.filename.rsplit('.', 1)[1].lower()
+                caminho_temp = os.path.join(UPLOAD_FOLDER, f"input_{uuid.uuid4()}.{extensao}")
+                file.save(caminho_temp)
+                arquivos_temporarios.append(caminho_temp)
+
+                img = Image.open(caminho_temp)
                 if img.mode != 'RGB':
                     img = img.convert('RGB')
-                image_list.append(img)
-                
-        if not image_list:
-            flash('Nenhuma imagem válida encontrada.')
+                imagens_pil.append(img)
+
+        if not imagens_pil:
+            flash('Nenhum arquivo de imagem válido foi enviado.')
             return redirect(url_for('index'))
-            
-        output_filename = f"imagens_convertidas_{uuid.uuid4().hex}.pdf"
-        output_path = os.path.join("/tmp", output_filename)
+
+        imagens_pil[0].save(caminho_saida, save_all=True, append_images=imagens_pil[1:])
         
-        # Salva o PDF agrupando todas as imagens
-        image_list[0].save(output_path, save_all=True, append_images=image_list[1:])
-        
-        # Limpa os arquivos temporários do servidor
-        for t_path in temp_files:
-            if os.path.exists(t_path):
-                os.remove(t_path)
-                
-        # Envia o PDF pronto para download
-        return send_file(output_path, as_attachment=True, download_name="imagens_convertidas.pdf")
-        
+        for img in imagens_pil:
+            img.close()
+
     except Exception as e:
-        flash(f"Erro ao processar as imagens: {str(e)}")
-        return redirect(url_for('index'))
+        app.logger.error(f"Erro na conversão: {e}")
+        return f"Erro no processamento da imagem: {e}", 500
+
+    finally:
+        for caminho in arquivos_temporarios:
+            if os.path.exists(caminho):
+                try:
+                    os.remove(caminho)
+                except Exception as e:
+                    app.logger.error(f"Erro ao deletar imagem temporária: {e}")
+
+    @after_this_request
+    def apagar_pdf_gerado(response):
+        try:
+            if os.path.exists(caminho_saida):
+                os.remove(caminho_saida)
+        except Exception as e:
+            app.logger.error(f"Erro ao deletar PDF de saída: {e}")
+        return response
+
+    return send_file(
+        caminho_saida,
+        as_attachment=True,
+        download_name="imagens_convertidas.pdf"
+    )
 
 # ---------------------------------------------------------
 # 3. ROTA: PDF PARA WORD (.docx)
@@ -290,7 +309,7 @@ def sitemap():
     xml = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>https://meu-conversor.onrender.com/</loc>
+        <loc>https://meuconversorpdf.com.br/</loc>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
     </url>
@@ -302,7 +321,7 @@ def robots():
     txt = """User-agent: *
 Allow: /
 
-Sitemap: https://meu-conversor.onrender.com/sitemap.xml"""
+Sitemap: https://meuconversorpdf.com.br/sitemap.xml"""
     return txt, 200, {'Content-Type': 'text/plain'}
 
 # ---------------------------------------------------------
