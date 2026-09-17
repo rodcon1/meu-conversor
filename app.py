@@ -5,11 +5,11 @@ import io
 import xml.etree.ElementTree as ET
 import pandas as pd
 import jinja2
-import pymupdf  # PyMuPDF (utilizado para manipulação de PDFs)
+import pymupdf  # PyMuPDF (utilizado para PDFs)
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
-# 1. INICIALIZAÇÃO DO APLICATIVO FLASK (Obrigatório vir no topo)
+# 1. Inicializa o aplicativo Flask PRIMEIRO
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
@@ -31,7 +31,7 @@ def arquivo_permitido(filename, extensoes_permitidas):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensoes_permitidas
 
 # ---------------------------------------------------------
-# ROTAS PRINCIPAIS E INSTITUCIONAIS
+# ROTAS PRINCIPAIS E DE NAVEGAÇÃO INSTITUCIONAL
 # ---------------------------------------------------------
 @app.route('/')
 def index():
@@ -53,24 +53,24 @@ def serve_pix_qr():
 # ---------------------------------------------------------
 # ROTAS DE PÁGINAS DEDICADAS (SEO HÍBRIDO)
 # ---------------------------------------------------------
-@app.route('/xml-para-excel-online')
+@app.route('/xml-para-excel-online', methods=['GET'])
 def pagina_xml_excel():
-    return render_template('index.html')
+    return render_template('index.html', ferramenta_ativa='xml-excel')
 
-@app.route('/unir-pdf-online')
+@app.route('/unir-pdf-online', methods=['GET'])
 def pagina_unir_pdf():
-    return render_template('index.html')
+    return render_template('index.html', ferramenta_ativa='unir-pdf')
 
-@app.route('/imagem-para-pdf-online')
+@app.route('/imagem-para-pdf-online', methods=['GET'])
 def pagina_imagem_pdf():
-    return render_template('index.html')
+    return render_template('index.html', ferramenta_ativa='imagem-pdf')
 
-@app.route('/pdf-para-imagem-online')
+@app.route('/pdf-para-imagem-online', methods=['GET'])
 def pagina_pdf_imagem():
-    return render_template('index.html')
+    return render_template('index.html', ferramenta_ativa='pdf-imagem')
 
 # ---------------------------------------------------------
-# 1. ROTA DE PROCESSAMENTO: UNIR PDFS
+# 1. ROTA: UNIR PDFS
 # ---------------------------------------------------------
 @app.route('/unir-pdf', methods=['POST'])
 def unir_pdf():
@@ -92,7 +92,7 @@ def unir_pdf():
     return send_file(output_path, as_attachment=True, download_name="documentos_unidos.pdf")
 
 # ---------------------------------------------------------
-# 2. ROTA DE PROCESSAMENTO: IMAGENS PARA PDF
+# 2. ROTA: IMAGENS PARA PDF
 # ---------------------------------------------------------
 @app.route('/converter', methods=['POST'])
 @app.route('/converter-imagem-pdf', methods=['POST'])
@@ -162,7 +162,7 @@ def converter_imagem_pdf():
     )
 
 # ---------------------------------------------------------
-# 3. ROTA DE PROCESSAMENTO: PDF PARA WORD (.docx)
+# 3. ROTA: PDF PARA WORD (.docx)
 # ---------------------------------------------------------
 @app.route('/pdf-para-word', methods=['POST'])
 @app.route('/converter-pdf-word', methods=['POST'])
@@ -215,7 +215,7 @@ def converter_pdf_word():
     )
 
 # ---------------------------------------------------------
-# 4. ROTA DE PROCESSAMENTO: XML PARA EXCEL (.xlsx)
+# 4. ROTA: XML PARA EXCEL (.xlsx)
 # ---------------------------------------------------------
 @app.route('/xml-para-excel', methods=['POST'])
 @app.route('/converter-xml-xlsx', methods=['POST'])
@@ -283,7 +283,7 @@ def converter_xml_xlsx():
     )
 
 # ---------------------------------------------------------
-# 5. ROTA DE PROCESSAMENTO: PDF PARA IMAGEM (.zip)
+# 5. ROTA: PDF PARA IMAGEM (.zip)
 # ---------------------------------------------------------
 @app.route('/pdf-para-imagem', methods=['POST'])
 def pdf_para_imagem():
@@ -321,7 +321,7 @@ def pdf_para_imagem():
     return 'Formato inválido.', 400
 
 # ---------------------------------------------------------
-# ROTAS DE SEO (Sitemap Expandido e Robots.txt)
+# ROTAS DE SEO (Sitemap e Robots)
 # ---------------------------------------------------------
 @app.route('/sitemap.xml')
 def sitemap():
@@ -364,7 +364,7 @@ Sitemap: https://meuconversorpdf.com.br/sitemap.xml"""
     return txt, 200, {'Content-Type': 'text/plain'}
 
 # ---------------------------------------------------------
-# INICIALIZAÇÃO DO SERVIDOR (Sempre no final)
+# INICIALIZAÇÃO DO SERVIDOR
 # ---------------------------------------------------------
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
