@@ -5,11 +5,11 @@ import io
 import xml.etree.ElementTree as ET
 import pandas as pd
 import jinja2
-import pymupdf  # PyMuPDF (utilizado para PDFs)
+import pymupdf  # PyMuPDF (utilizado para manipulação de PDFs)
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
-# 1. Inicializa o aplicativo Flask PRIMEIRO
+# 1. INICIALIZAÇÃO DO APLICATIVO FLASK (Obrigatório vir no topo)
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
@@ -31,7 +31,7 @@ def arquivo_permitido(filename, extensoes_permitidas):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensoes_permitidas
 
 # ---------------------------------------------------------
-# ROTAS PRINCIPAIS E DE NAVEGAÇÃO
+# ROTAS PRINCIPAIS E INSTITUCIONAIS
 # ---------------------------------------------------------
 @app.route('/')
 def index():
@@ -51,7 +51,26 @@ def serve_pix_qr():
     return send_from_directory(diretorio_atual, 'pix-qr.png')
 
 # ---------------------------------------------------------
-# 1. ROTA: UNIR PDFS (Usando PyMuPDF)
+# ROTAS DE PÁGINAS DEDICADAS (SEO HÍBRIDO)
+# ---------------------------------------------------------
+@app.route('/xml-para-excel-online')
+def pagina_xml_excel():
+    return render_template('index.html')
+
+@app.route('/unir-pdf-online')
+def pagina_unir_pdf():
+    return render_template('index.html')
+
+@app.route('/imagem-para-pdf-online')
+def pagina_imagem_pdf():
+    return render_template('index.html')
+
+@app.route('/pdf-para-imagem-online')
+def pagina_pdf_imagem():
+    return render_template('index.html')
+
+# ---------------------------------------------------------
+# 1. ROTA DE PROCESSAMENTO: UNIR PDFS
 # ---------------------------------------------------------
 @app.route('/unir-pdf', methods=['POST'])
 def unir_pdf():
@@ -73,7 +92,7 @@ def unir_pdf():
     return send_file(output_path, as_attachment=True, download_name="documentos_unidos.pdf")
 
 # ---------------------------------------------------------
-# 2. ROTA: IMAGENS PARA PDF
+# 2. ROTA DE PROCESSAMENTO: IMAGENS PARA PDF
 # ---------------------------------------------------------
 @app.route('/converter', methods=['POST'])
 @app.route('/converter-imagem-pdf', methods=['POST'])
@@ -143,7 +162,7 @@ def converter_imagem_pdf():
     )
 
 # ---------------------------------------------------------
-# 3. ROTA: PDF PARA WORD (.docx)
+# 3. ROTA DE PROCESSAMENTO: PDF PARA WORD (.docx)
 # ---------------------------------------------------------
 @app.route('/pdf-para-word', methods=['POST'])
 @app.route('/converter-pdf-word', methods=['POST'])
@@ -196,7 +215,7 @@ def converter_pdf_word():
     )
 
 # ---------------------------------------------------------
-# 4. ROTA: XML PARA EXCEL (.xlsx)
+# 4. ROTA DE PROCESSAMENTO: XML PARA EXCEL (.xlsx)
 # ---------------------------------------------------------
 @app.route('/xml-para-excel', methods=['POST'])
 @app.route('/converter-xml-xlsx', methods=['POST'])
@@ -264,7 +283,7 @@ def converter_xml_xlsx():
     )
 
 # ---------------------------------------------------------
-# 5. ROTA: PDF PARA IMAGEM (.zip)
+# 5. ROTA DE PROCESSAMENTO: PDF PARA IMAGEM (.zip)
 # ---------------------------------------------------------
 @app.route('/pdf-para-imagem', methods=['POST'])
 def pdf_para_imagem():
@@ -302,7 +321,7 @@ def pdf_para_imagem():
     return 'Formato inválido.', 400
 
 # ---------------------------------------------------------
-# ROTAS DE SEO (Sitemap e Robots)
+# ROTAS DE SEO (Sitemap Expandido e Robots.txt)
 # ---------------------------------------------------------
 @app.route('/sitemap.xml')
 def sitemap():
@@ -312,6 +331,26 @@ def sitemap():
         <loc>https://meuconversorpdf.com.br/</loc>
         <changefreq>weekly</changefreq>
         <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>https://meuconversorpdf.com.br/xml-para-excel-online</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://meuconversorpdf.com.br/unir-pdf-online</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://meuconversorpdf.com.br/imagem-para-pdf-online</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://meuconversorpdf.com.br/pdf-para-imagem-online</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
     </url>
 </urlset>"""
     return xml, 200, {'Content-Type': 'application/xml'}
