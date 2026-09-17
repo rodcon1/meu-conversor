@@ -15,7 +15,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Conversor - Converter Imagens, PDF e XML Online Grátis</title>
+    <title id="page-title">Meu Conversor - Converter Imagens, PDF e XML Online Grátis</title>
     
     <!-- Meta tags para compartilhamento em redes sociais e WhatsApp -->
     <meta property="og:title" content="Meu Conversor - Converta Arquivos Rapidamente">
@@ -74,7 +74,7 @@
             border-radius: 12px;
             padding: 30px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s, border 0.3s;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -83,6 +83,13 @@
         .card:hover {
             transform: translateY(-4px);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Destaque para página dedicada */
+        .card.card-destaque {
+            border: 2px solid #3182ce !important;
+            box-shadow: 0 0 20px rgba(49, 130, 206, 0.25) !important;
+            transform: scale(1.02);
         }
 
         .card h2 {
@@ -269,15 +276,17 @@
     <header>
         <!-- Logo SVG Minimalista -->
         <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px;">
-            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 7L4 11M4 11L8 15M4 11H16C18.2091 11 20 12.7909 20 15V16" stroke="#3182ce" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M16 17L20 13M20 13L16 9M20 13H8C5.79086 13 4 11.2091 4 9V8" stroke="#38a169" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <h1 style="font-size: 2.2rem; font-weight: 700; color: #1a202c; letter-spacing: -0.5px;">
-                Meu<span style="color: #3182ce;">Conversor</span>
-            </h1>
+            <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
+                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 7L4 11M4 11L8 15M4 11H16C18.2091 11 20 12.7909 20 15V16" stroke="#3182ce" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M16 17L20 13M20 13L16 9M20 13H8C5.79086 13 4 11.2091 4 9V8" stroke="#38a169" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h1 style="font-size: 2.2rem; font-weight: 700; color: #1a202c; letter-spacing: -0.5px;">
+                    Meu<span style="color: #3182ce;">Conversor</span>
+                </h1>
+            </a>
         </div>
-        <p style="font-size: 1.05rem; color: #718096; max-width: 500px; margin: 0 auto;">
+        <p id="header-subtitle" style="font-size: 1.05rem; color: #718096; max-width: 500px; margin: 0 auto;">
             Conversão rápida de arquivos. Sem cadastro, sem instalação.
         </p>
     </header>
@@ -285,7 +294,7 @@
     <div class="container">
         
         <!-- Ferramenta 1: Imagem para PDF -->
-        <div class="card">
+        <div class="card" id="imagem-pdf">
             <div>
                 <h2>🖼️ Imagem para PDF</h2>
                 <p>Converta uma ou várias imagens (JPG, PNG) em um único arquivo PDF.</p>
@@ -300,26 +309,8 @@
             </form>
         </div>
 
-        <!-- Ferramenta 2: PDF para Word (Desativada temporariamente) -->
-        <!-- 
-        <div class="card">
-            <div>
-                <h2>📄 PDF para Word</h2>
-                <p>Extraia o texto e formatação do seu arquivo PDF diretamente para DOCX.</p>
-            </div>
-            <form action="/word-para-pdf" method="POST" enctype="multipart/form-data">
-                <label class="dropzone">
-                    <span class="dropzone-icon">📄</span>
-                    <span class="file-label">Arraste seu PDF aqui ou clique para selecionar</span>
-                    <input type="file" name="file" accept=".pdf" required>
-                </label>
-                <button type="submit" class="btn">Converter para Word</button>
-            </form>
-        </div>
-        -->
-
-        <!-- Ferramenta 3: Unir PDFs -->
-        <div class="card">
+        <!-- Ferramenta 2: Unir PDFs -->
+        <div class="card" id="unir-pdf">
             <div>
                 <h2>📁 Unir PDFs</h2>
                 <p>Junte vários arquivos PDF em um único documento de forma rápida e organizada.</p>
@@ -334,8 +325,8 @@
             </form>
         </div>
 
-        <!-- Ferramenta 4: XML para Excel -->
-        <div class="card">
+        <!-- Ferramenta 3: XML para Excel -->
+        <div class="card" id="xml-excel">
             <div>
                 <h2>📊 XML para Excel</h2>
                 <p>Transforme notas e arquivos de dados XML em tabelas organizadas em XLSX.</p>
@@ -350,8 +341,8 @@
             </form>
         </div>
 
-        <!-- Ferramenta 5: PDF para Imagens -->
-        <div class="card">
+        <!-- Ferramenta 4: PDF para Imagens -->
+        <div class="card" id="pdf-imagem">
             <div>
                 <h2>🗂️ PDF para Imagens</h2>
                 <p>Extraia todas as páginas de um PDF e baixe como imagens (PNG) em um arquivo ZIP.</p>
@@ -517,26 +508,36 @@
         });
     </script>
 
-<script>
-  // Lê a variável enviada pelo Python/Flask no render_template
-  const ferramentaAtiva = "{{ ferramenta_ativa | default('') }}";
+    <!-- Script de Foco Automático para Páginas Dedicadas (SEO Híbrido) -->
+    <script>
+      const ferramentaAtiva = "{{ ferramenta_ativa | default('') }}";
 
-  document.addEventListener("DOMContentLoaded", function() {
-    if (ferramentaAtiva) {
-      // 1. Procura o card ou formulário da ferramenta pelo ID
-      const cardAlvo = document.getElementById(ferramentaAtiva);
-      
-      if (cardAlvo) {
-        // Rola a tela suavemente até a ferramenta correspondente
-        cardAlvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        // Destaca a caixa para o usuário perceber qual ferramenta está ativa
-        cardAlvo.style.border = '2px solid #4f46e5';
-        cardAlvo.style.boxShadow = '0 0 15px rgba(79, 70, 229, 0.3)';
-      }
-    }
-  });
-</script>
+      document.addEventListener("DOMContentLoaded", function() {
+        if (ferramentaAtiva) {
+          const cardAlvo = document.getElementById(ferramentaAtiva);
+          
+          if (cardAlvo) {
+            // Aplica estilo de destaque visual no card
+            cardAlvo.classList.add("card-destaque");
+            
+            // Rola a tela até a ferramenta correspondente
+            cardAlvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Personaliza o título da aba do navegador e o subtítulo da página conforme a ferramenta
+            const titlesMap = {
+                'xml-excel': 'XML para Excel Online Grátis - Meu Conversor',
+                'unir-pdf': 'Unir PDFs Online Grátis - Meu Conversor',
+                'imagem-pdf': 'Converter Imagens para PDF - Meu Conversor',
+                'pdf-imagem': 'Extrair Imagens de PDF - Meu Conversor'
+            };
+
+            if (titlesMap[ferramentaAtiva]) {
+                document.title = titlesMap[ferramentaAtiva];
+            }
+          }
+        }
+      });
+    </script>
     
 </body>
 </html>
