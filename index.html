@@ -24,18 +24,18 @@
     <meta property="og:url" content="https://meuconversorpdf.com.br">
     <meta property="og:type" content="website">
     
-    <meta name="description" content="Converta imagens para PDF e XML para Excel online de forma rápida, gratuita e sem instalação.">
-    <meta name="keywords" content="converter imagem em pdf, xml para excel, unir pdf, conversor online gratis">
+    <meta name="description" content="Converta imagens para PDF, comprimir PDF e XML para Excel online de forma rápida, gratuita e sem instalação.">
+    <meta name="keywords" content="converter imagem em pdf, xml para excel, unir pdf, comprimir pdf, xml para pdf, conversor online gratis">
     <meta name="author" content="Meu Conversor">
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://meuconversorpdf.com.br/">
     <meta name="twitter:title" content="Meu Conversor Online - Ferramentas de Conversão Gratuitas">
-    <meta name="twitter:description" content="Converta JPG/PNG para PDF, Unir PDFs e XML para XLSX diretamente no navegador.">
+    <meta name="twitter:description" content="Converta JPG/PNG para PDF, Unir PDFs, Comprimir PDF e XML para XLSX diretamente no navegador.">
     <meta name="twitter:image" content="https://cdn-icons-png.flaticon.com/512/337/337946.png">
 
-    <!-- Favicon (Ícone da aba do navegador) -->
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
 
     <style>
@@ -85,7 +85,6 @@
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
         }
 
-        /* Destaque para página dedicada */
         .card.card-destaque {
             border: 2px solid #3182ce !important;
             box-shadow: 0 0 20px rgba(49, 130, 206, 0.25) !important;
@@ -108,7 +107,6 @@
             line-height: 1.4;
         }
 
-        /* Área Drag & Drop */
         .dropzone {
             position: relative;
             border: 2px dashed #cbd5e0;
@@ -175,7 +173,6 @@
             cursor: not-allowed;
         }
 
-        /* Animação do Loading Spinner */
         .spinner {
             display: inline-block;
             width: 18px;
@@ -191,7 +188,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Seção Pix */
         .pix-section {
             background-color: #ffffff;
             border: 2px dashed #e2e8f0;
@@ -274,7 +270,6 @@
 <body>
 
     <header>
-        <!-- Logo SVG Minimalista -->
         <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px;">
             <a href="/" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
                 <svg width="42" height="42" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -357,6 +352,38 @@
             </form>
         </div>
 
+        <!-- Ferramenta 5: Comprimir PDF -->
+        <div class="card" id="comprimir-pdf">
+            <div>
+                <h2>📉 Comprimir PDF</h2>
+                <p>Reduza o tamanho do seu PDF mantendo a qualidade para envio rápido.</p>
+            </div>
+            <form action="/comprimir-pdf" method="POST" enctype="multipart/form-data">
+                <label class="dropzone">
+                    <span class="dropzone-icon">📉</span>
+                    <span class="file-label">Arraste seu PDF aqui ou clique para selecionar</span>
+                    <input type="file" name="file" accept=".pdf" required>
+                </label>
+                <button type="submit" class="btn">Comprimir PDF</button>
+            </form>
+        </div>
+
+        <!-- Ferramenta 6: XML para PDF -->
+        <div class="card" id="xml-pdf">
+            <div>
+                <h2>📑 XML para PDF</h2>
+                <p>Converta o conteúdo de arquivos XML em um documento PDF legível.</p>
+            </div>
+            <form action="/xml-para-pdf" method="POST" enctype="multipart/form-data">
+                <label class="dropzone">
+                    <span class="dropzone-icon">📑</span>
+                    <span class="file-label">Arraste seu arquivo XML aqui ou clique para selecionar</span>
+                    <input type="file" name="file" accept=".xml" required>
+                </label>
+                <button type="submit" class="btn">Converter para PDF</button>
+            </form>
+        </div>
+
     </div>
 
     <!-- Bloco Pix -->
@@ -382,7 +409,6 @@
     </footer>
 
     <script>
-        // Copiar Chave Pix
         function copiarPix() {
             var inputPix = document.getElementById("pixKey");
             inputPix.select();
@@ -399,7 +425,6 @@
             }, 2500);
         }
 
-        // Lógica Unificada de Drag & Drop
         document.querySelectorAll('.dropzone').forEach(zone => {
             const input = zone.querySelector('input[type="file"]');
             const label = zone.querySelector('.file-label');
@@ -449,7 +474,6 @@
             }
         }
 
-        // Lógica de Conversão Assíncrona
         document.querySelectorAll('form').forEach(form => {
             if (!form.action) return;
 
@@ -460,7 +484,7 @@
                 const textoOriginal = btn.innerText;
 
                 btn.disabled = true;
-                btn.innerHTML = '<span class="spinner"></span> Convertendo...';
+                btn.innerHTML = '<span class="spinner"></span> Processando...';
 
                 try {
                     const formData = new FormData(form);
@@ -498,7 +522,7 @@
                     }
 
                 } catch (error) {
-                    alert('Ocorreu um erro durante a conversão. Verifique o arquivo e tente novamente.');
+                    alert('Ocorreu um erro durante o processamento. Verifique o arquivo e tente novamente.');
                     console.error(error);
                 } finally {
                     btn.disabled = false;
@@ -517,18 +541,16 @@
           const cardAlvo = document.getElementById(ferramentaAtiva);
           
           if (cardAlvo) {
-            // Aplica estilo de destaque visual no card
             cardAlvo.classList.add("card-destaque");
-            
-            // Rola a tela até a ferramenta correspondente
             cardAlvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-            // Personaliza o título da aba do navegador e o subtítulo da página conforme a ferramenta
             const titlesMap = {
                 'xml-excel': 'XML para Excel Online Grátis - Meu Conversor',
                 'unir-pdf': 'Unir PDFs Online Grátis - Meu Conversor',
                 'imagem-pdf': 'Converter Imagens para PDF - Meu Conversor',
-                'pdf-imagem': 'Extrair Imagens de PDF - Meu Conversor'
+                'pdf-imagem': 'Extrair Imagens de PDF - Meu Conversor',
+                'comprimir-pdf': 'Comprimir PDF Online Grátis - Meu Conversor',
+                'xml-pdf': 'XML para PDF Online Grátis - Meu Conversor'
             };
 
             if (titlesMap[ferramentaAtiva]) {
@@ -538,6 +560,5 @@
         }
       });
     </script>
-    
 </body>
 </html>
