@@ -5,11 +5,11 @@ import io
 import xml.etree.ElementTree as ET
 import pandas as pd
 import jinja2
-import pymupdf  # PyMuPDF (utilizado para PDFs)
+import pymupdf  # PyMuPDF (utilizado para manipular e comprimir PDFs)
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
-# 1. Inicializa o aplicativo Flask PRIMEIRO
+# 1. INICIALIZAÇÃO DO APLICATIVO FLASK
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
@@ -31,7 +31,7 @@ def arquivo_permitido(filename, extensoes_permitidas):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in extensoes_permitidas
 
 # ---------------------------------------------------------
-# ROTAS PRINCIPAIS E DE NAVEGAÇÃO INSTITUCIONAL
+# ROTAS PRINCIPAIS E INSTITUCIONAIS
 # ---------------------------------------------------------
 @app.route('/')
 def index():
@@ -69,8 +69,16 @@ def pagina_imagem_pdf():
 def pagina_pdf_imagem():
     return render_template('index.html', ferramenta_ativa='pdf-imagem')
 
+@app.route('/comprimir-pdf-online', methods=['GET'])
+def pagina_comprimir_pdf():
+    return render_template('index.html', ferramenta_ativa='comprimir-pdf')
+
+@app.route('/xml-para-pdf-online', methods=['GET'])
+def pagina_xml_pdf():
+    return render_template('index.html', ferramenta_ativa='xml-pdf')
+
 # ---------------------------------------------------------
-# 1. ROTA: UNIR PDFS
+# 1. ROTA DE PROCESSAMENTO: UNIR PDFS
 # ---------------------------------------------------------
 @app.route('/unir-pdf', methods=['POST'])
 def unir_pdf():
@@ -92,7 +100,7 @@ def unir_pdf():
     return send_file(output_path, as_attachment=True, download_name="documentos_unidos.pdf")
 
 # ---------------------------------------------------------
-# 2. ROTA: IMAGENS PARA PDF
+# 2. ROTA DE PROCESSAMENTO: IMAGENS PARA PDF
 # ---------------------------------------------------------
 @app.route('/converter', methods=['POST'])
 @app.route('/converter-imagem-pdf', methods=['POST'])
@@ -162,7 +170,7 @@ def converter_imagem_pdf():
     )
 
 # ---------------------------------------------------------
-# 3. ROTA: PDF PARA WORD (.docx)
+# 3. ROTA DE PROCESSAMENTO: PDF PARA WORD (.docx)
 # ---------------------------------------------------------
 @app.route('/pdf-para-word', methods=['POST'])
 @app.route('/converter-pdf-word', methods=['POST'])
@@ -215,7 +223,7 @@ def converter_pdf_word():
     )
 
 # ---------------------------------------------------------
-# 4. ROTA: XML PARA EXCEL (.xlsx)
+# 4. ROTA DE PROCESSAMENTO: XML PARA EXCEL (.xlsx)
 # ---------------------------------------------------------
 @app.route('/xml-para-excel', methods=['POST'])
 @app.route('/converter-xml-xlsx', methods=['POST'])
@@ -283,7 +291,7 @@ def converter_xml_xlsx():
     )
 
 # ---------------------------------------------------------
-# 5. ROTA: PDF PARA IMAGEM (.zip)
+# 5. ROTA DE PROCESSAMENTO: PDF PARA IMAGEM (.zip)
 # ---------------------------------------------------------
 @app.route('/pdf-para-imagem', methods=['POST'])
 def pdf_para_imagem():
@@ -302,7 +310,7 @@ def pdf_para_imagem():
             with zipfile.ZipFile(memory_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
                 for page_num in range(len(pdf_document)):
                     page = pdf_document.load_page(page_num)
-                    pix = page.get_pixmap(dpi=150) # Qualidade 150 DPI
+                    pix = page.get_pixmap(dpi=150)
                     image_bytes = pix.tobytes("png")
                     zf.writestr(f"pagina_{page_num + 1}.png", image_bytes)
             
@@ -321,7 +329,90 @@ def pdf_para_imagem():
     return 'Formato inválido.', 400
 
 # ---------------------------------------------------------
-# ROTAS DE SEO (Sitemap e Robots)
+# 6. ROTA DE PROCESSAMENTO: COMPRIMIR PDF (NOVA)
+# ---------------------------------------------------------
+@app.route('/comprimir-pdf', methods=['POST'])
+def comprimir_pdf():
+    file = request.files.get('file')
+    if not file or file.filename == '':
+        return 'Nenhum arquivo selecionado', 400
+
+    if file and file.filename.lower().endswith('.pdf'):
+        try:
+            doc = pymupdf.open(stream=file.read(), filetype="pdf")
+            memory_pdf = io.BytesIO()
+            
+            # Otimização com compressão garbage e de objetos no PyMuPDF
+            doc.save(memory_pdf, deflate=True, garbage=4, clean=True)
+            doc.close()
+            memory_pdf.seek(0)
+
+            nome_saida = f"comprimido_{os.path.splitext(file.filename)[0]}.pdf"
+            return send_file(
+                memory_pdf,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=nome_saida
+            )
+        except Exception as e:
+            app.logger.error(f"Erro ao comprimir PDF: {e}")
+            return 'Erro ao comprimir o PDF.', 500
+
+    return 'Formato inválido.', 400
+
+# ---------------------------------------------------------
+# 7. ROTA DE PROCESSAMENTO: XML PARA PDF (NOVA)
+# ---------------------------------------------------------
+@app.route('/xml-para-pdf', methods=['POST'])
+def xml_para_pdf():
+    file = request.files.get('file')
+    if not file or file.filename == '':
+        return 'Nenhum arquivo selecionado', 400
+
+    if file and file.filename.lower().endswith('.xml'):
+        try:
+            tree = ET.parse(file)
+            root = tree.getroot()
+
+            # Cria um PDF formatado na memória
+            doc = pymupdf.open()
+            page = doc.new_page()
+            
+            y = 50
+            page.insert_text((50, y), "Relatório do Arquivo XML", fontsize=16, fontname="helv", color=(0.2, 0.4, 0.8))
+            y += 30
+
+            for elem in root.iter():
+                tag_limpa = elem.tag.split('}')[-1] if '}' in elem.tag else elem.tag
+                if elem.text and elem.text.strip():
+                    texto = f"{tag_limpa}: {elem.text.strip()}"
+                    page.insert_text((50, y), texto[:90], fontsize=10, fontname="helv")
+                    y += 18
+                    
+                    if y > 750:
+                        page = doc.new_page()
+                        y = 50
+
+            memory_pdf = io.BytesIO()
+            doc.save(memory_pdf)
+            doc.close()
+            memory_pdf.seek(0)
+
+            nome_saida = f"{os.path.splitext(file.filename)[0]}.pdf"
+            return send_file(
+                memory_pdf,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=nome_saida
+            )
+        except Exception as e:
+            app.logger.error(f"Erro ao converter XML para PDF: {e}")
+            return 'Erro ao processar o XML.', 500
+
+    return 'Formato inválido.', 400
+
+# ---------------------------------------------------------
+# ROTAS DE SEO (Sitemap Expandido e Robots.txt)
 # ---------------------------------------------------------
 @app.route('/sitemap.xml')
 def sitemap():
@@ -349,6 +440,16 @@ def sitemap():
     </url>
     <url>
         <loc>https://meuconversorpdf.com.br/pdf-para-imagem-online</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://meuconversorpdf.com.br/comprimir-pdf-online</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>
+    <url>
+        <loc>https://meuconversorpdf.com.br/xml-para-pdf-online</loc>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
