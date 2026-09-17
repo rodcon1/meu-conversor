@@ -518,15 +518,24 @@
     </script>
 
 <script>
-  // Detecta se o Flask enviou alguma ferramenta pré-selecionada na URL
+  // Lê a variável enviada pelo Python/Flask no render_template
   const ferramentaAtiva = "{{ ferramenta_ativa | default('') }}";
-  if (ferramentaAtiva) {
-    const cardAlvo = document.getElementById(ferramentaAtiva);
-    if (cardAlvo) {
-      cardAlvo.scrollIntoView({ behavior: 'smooth' });
-      cardAlvo.style.border = '2px solid #4f46e5';
+
+  document.addEventListener("DOMContentLoaded", function() {
+    if (ferramentaAtiva) {
+      // 1. Procura o card ou formulário da ferramenta pelo ID
+      const cardAlvo = document.getElementById(ferramentaAtiva);
+      
+      if (cardAlvo) {
+        // Rola a tela suavemente até a ferramenta correspondente
+        cardAlvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Destaca a caixa para o usuário perceber qual ferramenta está ativa
+        cardAlvo.style.border = '2px solid #4f46e5';
+        cardAlvo.style.boxShadow = '0 0 15px rgba(79, 70, 229, 0.3)';
+      }
     }
-  }
+  });
 </script>
     
 </body>
