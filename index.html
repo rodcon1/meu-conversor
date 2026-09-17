@@ -517,5 +517,17 @@
         });
     </script>
 
+<script>
+  // Detecta se o Flask enviou alguma ferramenta pré-selecionada na URL
+  const ferramentaAtiva = "{{ ferramenta_ativa | default('') }}";
+  if (ferramentaAtiva) {
+    const cardAlvo = document.getElementById(ferramentaAtiva);
+    if (cardAlvo) {
+      cardAlvo.scrollIntoView({ behavior: 'smooth' });
+      cardAlvo.style.border = '2px solid #4f46e5';
+    }
+  }
+</script>
+    
 </body>
 </html>
