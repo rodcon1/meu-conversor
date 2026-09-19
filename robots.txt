@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://meuconversorpdf.com.br/sitemap.xml
