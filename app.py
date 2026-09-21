@@ -5,17 +5,18 @@ import io
 import xml.etree.ElementTree as ET
 import pandas as pd
 import jinja2
-import pymupdf  # PyMuPDF
-from pdf2docx import Converter 
+import pymupdf  # PyMuPDF (utilizado para manipulação e compressão de PDFs)
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
-# ---------------------------------------------------------
+# Importa o gerador de DANFE oficial (danfe.py)
+from danfe import gerar_danfe, DanfeError
+
 # 1. INICIALIZAÇÃO DO APLICATIVO FLASK
-# ---------------------------------------------------------
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
+# Configura o carregador de templates do Jinja
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
 app.jinja_loader = jinja2.ChoiceLoader([
     app.jinja_loader,
@@ -47,6 +48,7 @@ def politica():
 def termos():
     return render_template('termos.html')
 
+# Rota para carregar a imagem do QR Code do Pix
 @app.route('/pix-qr.png')
 def serve_pix_qr():
     return send_from_directory(diretorio_atual, 'pix-qr.png')
@@ -94,19 +96,10 @@ def unir_pdf():
             merged_pdf.insert_pdf(doc)
             
     output_filename = f"unido_{uuid.uuid4().hex}.pdf"
-    output_path = os.path.join(UPLOAD_FOLDER, output_filename)
+    output_path = os.path.join("/tmp", output_filename)
     merged_pdf.save(output_path)
     merged_pdf.close()
     
-    @after_this_request
-    def apagar_pdf_unido(response):
-        try:
-            if os.path.exists(output_path):
-                os.remove(output_path)
-        except Exception as e:
-            app.logger.error(f"Erro ao deletar PDF unido: {e}")
-        return response
-
     return send_file(output_path, as_attachment=True, download_name="documentos_unidos.pdf")
 
 # ---------------------------------------------------------
@@ -200,6 +193,7 @@ def converter_pdf_word():
 
     try:
         file.save(caminho_entrada)
+        from pdf2docx import Converter
         cv = Converter(caminho_entrada)
         cv.convert(caminho_saida, start=0, end=None)
         cv.close()
@@ -332,7 +326,7 @@ def pdf_para_imagem():
                 download_name='imagens_extraidas.zip'
             )
         except Exception as e:
-            app.logger.error(f"Erro na conversão: {e}")
+            print(f"Erro na conversão: {e}")
             return 'Erro ao processar o PDF.', 500
             
     return 'Formato inválido.', 400
@@ -369,7 +363,7 @@ def comprimir_pdf():
     return 'Formato inválido.', 400
 
 # ---------------------------------------------------------
-# 7. ROTA DE PROCESSAMENTO: XML PARA PDF (VERSÃO BLINDADA)
+# 7. ROTA DE PROCESSAMENTO: XML PARA PDF (DANFE OFICIAL MODELO 55)
 # ---------------------------------------------------------
 @app.route('/xml-para-pdf', methods=['POST'])
 def xml_para_pdf():
@@ -379,75 +373,16 @@ def xml_para_pdf():
 
     if file and file.filename.lower().endswith('.xml'):
         try:
+            # Lê os bytes do arquivo XML enviado
             xml_bytes = file.read()
-            root = ET.fromstring(xml_bytes)
 
-            # Função auxiliar segura para ignorar namespaces
-            def get_text(tag_name):
-                for elem in root.iter():
-                    if elem.tag.endswith(tag_name) and elem.text:
-                        return elem.text.strip()
-                return "N/A"
+            # Processa o XML utilizando o motor do danfe.py
+            pdf_bytes, numero_nf = gerar_danfe(xml_bytes)
 
-            nnf = get_text('nNF')
-            dhemi = get_text('dhEmi')
-            natop = get_text('natOp')
-            vnf = get_text('vNF')
-            chave = get_text('chNFe')
-
-            doc = pymupdf.open()
-            page = doc.new_page()
-            
-            margin = 40
-            y = margin
-
-            def add_line(text, size=10, bold=False):
-                nonlocal y, page, doc
-                font = "helv-bo" if bold else "helv"
-                page.insert_text((margin, y), text, fontsize=size, fontname=font)
-                y += 18
-                if y > 750:
-                    page = doc.new_page()
-                    y = margin
-
-            add_line("RELATÓRIO DE NOTA FISCAL ELETRÔNICA (XML)", size=14, bold=True)
-            y += 5
-            add_line(f"Chave de Acesso: {chave}", size=8)
-            y += 10
-
-            add_line("DADOS DA NOTA FISCAL", size=11, bold=True)
-            add_line(f"Número da Nota: {nnf}")
-            add_line(f"Data de Emissão: {dhemi}")
-            add_line(f"Natureza da Operação: {natop}")
-            y += 10
-
-            add_line("PRODUTOS / ITENS DA NOTA", size=11, bold=True)
-            
-            encontrou_produto = False
-            for det in root.iter():
-                if det.tag.endswith('det'):
-                    prod_nome = "N/A"
-                    prod_vtot = "0.00"
-                    for child in det.iter():
-                        if child.tag.endswith('xProd') and child.text:
-                            prod_nome = child.text.strip()
-                        elif child.tag.endswith('vProd') and child.text:
-                            prod_vtot = child.text.strip()
-                    add_line(f"- {prod_nome[:65]} | Total: R$ {prod_vtot}", size=9)
-                    encontrou_produto = True
-
-            if not encontrou_produto:
-                add_line("Nenhum item detalhado encontrado neste XML.", size=9)
-
-            y += 10
-            add_line(f"VALOR TOTAL DA NOTA: R$ {vnf}", size=12, bold=True)
-
-            memory_pdf = io.BytesIO()
-            doc.save(memory_pdf)
-            doc.close()
+            memory_pdf = io.BytesIO(pdf_bytes)
             memory_pdf.seek(0)
 
-            nome_saida = f"NFe_{nnf if nnf != 'N/A' else 'Convertida'}.pdf"
+            nome_saida = f"DANFE_NFe_{numero_nf}.pdf"
             return send_file(
                 memory_pdf,
                 mimetype='application/pdf',
@@ -455,13 +390,18 @@ def xml_para_pdf():
                 download_name=nome_saida
             )
 
+        except DanfeError as de:
+            app.logger.warning(f"Erro de negócio no XML: {de}")
+            return f"Erro ao processar a Nota Fiscal: {str(de)}", 400
+
         except Exception as e:
-            app.logger.error(f"Erro ao processar XML para PDF: {e}")
-            return f"Erro ao processar o arquivo XML: {str(e)}", 500
+            app.logger.error(f"Erro crítico ao gerar DANFE: {e}")
+            return f"Erro interno ao gerar o DANFE: {str(e)}", 500
 
     return 'Formato inválido. Envie um arquivo XML.', 400
+
 # ---------------------------------------------------------
-# ROTAS DE SEO
+# ROTAS DE SEO (Sitemap e Robots.txt)
 # ---------------------------------------------------------
 @app.route('/sitemap.xml')
 def sitemap():
