@@ -379,25 +379,22 @@ def xml_para_pdf():
 
     if file and file.filename.lower().endswith('.xml'):
         try:
-            # Lê o conteúdo do XML com segurança a partir da memória
             xml_bytes = file.read()
             root = ET.fromstring(xml_bytes)
 
-            # Função auxiliar para extrair textos ignorando namespaces
+            # Função auxiliar segura para ignorar namespaces
             def get_text(tag_name):
                 for elem in root.iter():
                     if elem.tag.endswith(tag_name) and elem.text:
                         return elem.text.strip()
                 return "N/A"
 
-            # Coleta as informações principais da NFe
             nnf = get_text('nNF')
             dhemi = get_text('dhEmi')
             natop = get_text('natOp')
             vnf = get_text('vNF')
             chave = get_text('chNFe')
 
-            # Cria o documento PDF utilizando o PyMuPDF
             doc = pymupdf.open()
             page = doc.new_page()
             
@@ -413,7 +410,6 @@ def xml_para_pdf():
                     page = doc.new_page()
                     y = margin
 
-            # Montagem visual do relatório no PDF
             add_line("RELATÓRIO DE NOTA FISCAL ELETRÔNICA (XML)", size=14, bold=True)
             y += 5
             add_line(f"Chave de Acesso: {chave}", size=8)
@@ -427,7 +423,6 @@ def xml_para_pdf():
 
             add_line("PRODUTOS / ITENS DA NOTA", size=11, bold=True)
             
-            # Varredura segura dos produtos
             encontrou_produto = False
             for det in root.iter():
                 if det.tag.endswith('det'):
@@ -447,7 +442,6 @@ def xml_para_pdf():
             y += 10
             add_line(f"VALOR TOTAL DA NOTA: R$ {vnf}", size=12, bold=True)
 
-            # Salva o PDF gerado em memória
             memory_pdf = io.BytesIO()
             doc.save(memory_pdf)
             doc.close()
@@ -462,11 +456,10 @@ def xml_para_pdf():
             )
 
         except Exception as e:
-            app.logger.error(f"Erro crítico ao processar XML para PDF: {e}")
+            app.logger.error(f"Erro ao processar XML para PDF: {e}")
             return f"Erro ao processar o arquivo XML: {str(e)}", 500
 
     return 'Formato inválido. Envie um arquivo XML.', 400
-
 # ---------------------------------------------------------
 # ROTAS DE SEO
 # ---------------------------------------------------------
