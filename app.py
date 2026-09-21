@@ -9,7 +9,7 @@ import pymupdf  # PyMuPDF (utilizado para manipulação e compressão de PDFs)
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
-# Importa o gerador de DANFE oficial (danfe.py)
+# Importa o gerador de DANFE oficial do arquivo danfe.py
 from danfe import gerar_danfe, DanfeError
 
 # 1. INICIALIZAÇÃO DO APLICATIVO FLASK
