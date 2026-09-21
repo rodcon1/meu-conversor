@@ -5,15 +5,17 @@ import io
 import xml.etree.ElementTree as ET
 import pandas as pd
 import jinja2
-import pymupdf  # PyMuPDF (utilizado para manipular e comprimir PDFs)
+import pymupdf  # PyMuPDF
+from pdf2docx import Converter # Importação unificada no topo
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
 
+# ---------------------------------------------------------
 # 1. INICIALIZAÇÃO DO APLICATIVO FLASK
+# ---------------------------------------------------------
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
-# Configura o carregador de templates do Jinja
 diretorio_atual = os.path.dirname(os.path.abspath(__file__))
 app.jinja_loader = jinja2.ChoiceLoader([
     app.jinja_loader,
@@ -45,7 +47,6 @@ def politica():
 def termos():
     return render_template('termos.html')
 
-# Rota para carregar a imagem do QR Code do Pix
 @app.route('/pix-qr.png')
 def serve_pix_qr():
     return send_from_directory(diretorio_atual, 'pix-qr.png')
@@ -93,10 +94,19 @@ def unir_pdf():
             merged_pdf.insert_pdf(doc)
             
     output_filename = f"unido_{uuid.uuid4().hex}.pdf"
-    output_path = os.path.join("/tmp", output_filename)
+    output_path = os.path.join(UPLOAD_FOLDER, output_filename)
     merged_pdf.save(output_path)
     merged_pdf.close()
     
+    @after_this_request
+    def apagar_pdf_unido(response):
+        try:
+            if os.path.exists(output_path):
+                os.remove(output_path)
+        except Exception as e:
+            app.logger.error(f"Erro ao deletar PDF unido: {e}")
+        return response
+
     return send_file(output_path, as_attachment=True, download_name="documentos_unidos.pdf")
 
 # ---------------------------------------------------------
@@ -190,7 +200,6 @@ def converter_pdf_word():
 
     try:
         file.save(caminho_entrada)
-        from pdf2docx import Converter
         cv = Converter(caminho_entrada)
         cv.convert(caminho_saida, start=0, end=None)
         cv.close()
@@ -323,13 +332,13 @@ def pdf_para_imagem():
                 download_name='imagens_extraidas.zip'
             )
         except Exception as e:
-            print(f"Erro na conversão: {e}")
+            app.logger.error(f"Erro na conversão: {e}")
             return 'Erro ao processar o PDF.', 500
             
     return 'Formato inválido.', 400
 
 # ---------------------------------------------------------
-# 6. ROTA DE PROCESSAMENTO: COMPRIMIR PDF (NOVA)
+# 6. ROTA DE PROCESSAMENTO: COMPRIMIR PDF
 # ---------------------------------------------------------
 @app.route('/comprimir-pdf', methods=['POST'])
 def comprimir_pdf():
@@ -342,7 +351,6 @@ def comprimir_pdf():
             doc = pymupdf.open(stream=file.read(), filetype="pdf")
             memory_pdf = io.BytesIO()
             
-            # Otimização com compressão garbage e de objetos no PyMuPDF
             doc.save(memory_pdf, deflate=True, garbage=4, clean=True)
             doc.close()
             memory_pdf.seek(0)
@@ -361,7 +369,7 @@ def comprimir_pdf():
     return 'Formato inválido.', 400
 
 # ---------------------------------------------------------
-# 7. ROTA DE PROCESSAMENTO: XML PARA PDF (NOVA)
+# 7. ROTA DE PROCESSAMENTO: XML PARA PDF
 # ---------------------------------------------------------
 @app.route('/xml-para-pdf', methods=['POST'])
 def xml_para_pdf():
@@ -374,7 +382,6 @@ def xml_para_pdf():
             tree = ET.parse(file)
             root = tree.getroot()
 
-            # Cria um PDF formatado na memória
             doc = pymupdf.open()
             page = doc.new_page()
             
@@ -412,7 +419,7 @@ def xml_para_pdf():
     return 'Formato inválido.', 400
 
 # ---------------------------------------------------------
-# ROTAS DE SEO (Sitemap Expandido e Robots.txt)
+# ROTAS DE SEO
 # ---------------------------------------------------------
 @app.route('/sitemap.xml')
 def sitemap():
