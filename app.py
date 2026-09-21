@@ -369,7 +369,7 @@ def comprimir_pdf():
     return 'Formato inválido.', 400
 
 # ---------------------------------------------------------
-# 7. ROTA DE PROCESSAMENTO: XML PARA PDF (LAYOUT ESTRUTURADO)
+# 7. ROTA DE PROCESSAMENTO: XML PARA PDF (VERSÃO BLINDADA)
 # ---------------------------------------------------------
 @app.route('/xml-para-pdf', methods=['POST'])
 def xml_para_pdf():
@@ -379,108 +379,81 @@ def xml_para_pdf():
 
     if file and file.filename.lower().endswith('.xml'):
         try:
-            tree = ET.parse(file)
-            root = tree.getroot()
+            # Lê o conteúdo do XML com segurança a partir da memória
+            xml_bytes = file.read()
+            root = ET.fromstring(xml_bytes)
 
-            # Função segura para encontrar tags ignorando namespaces da SEFAZ
+            # Função auxiliar para extrair textos ignorando namespaces
             def get_text(tag_name):
                 for elem in root.iter():
                     if elem.tag.endswith(tag_name) and elem.text:
                         return elem.text.strip()
                 return "N/A"
 
-            def get_all(tag_name):
-                results = []
-                for elem in root.iter():
-                    if elem.tag.endswith(tag_name) and elem.text:
-                        results.append(elem.text.strip())
-                return results
-
-            # Coleta de dados principais da NFe
+            # Coleta as informações principais da NFe
             nnf = get_text('nNF')
             dhemi = get_text('dhEmi')
             natop = get_text('natOp')
             vnf = get_text('vNF')
             chave = get_text('chNFe')
 
-            nomes = get_all('xNome')
-            cnpjs = get_all('CNPJ')
-            
-            emit_nome = nomes[0] if len(nomes) > 0 else "N/A"
-            emit_cnpj = cnpjs[0] if len(cnpjs) > 0 else "N/A"
-            dest_nome = nomes[1] if len(nomes) > 1 else "N/A"
-            dest_cnpj = cnpjs[1] if len(cnpjs) > 1 else "N/A"
-
-            # Coleta de produtos
-            produtos = []
-            for det in root.iter():
-                if det.tag.endswith('det'):
-                    prod_nome = "N/A"
-                    prod_qtd = "0"
-                    prod_vun = "0.00"
-                    prod_vtot = "0.00"
-                    for child in det.iter():
-                        if child.tag.endswith('xProd'): prod_nome = child.text
-                        elif child.tag.endswith('qCom'): prod_qtd = child.text
-                        elif child.tag.endswith('vUnCom'): prod_vun = child.text
-                        elif child.tag.endswith('vProd'): prod_vtot = child.text
-                    produtos.append({'nome': prod_nome, 'qtd': prod_qtd, 'vun': prod_vun, 'vtot': prod_vtot})
-
-            # Criação do PDF limpo com PyMuPDF
+            # Cria o documento PDF utilizando o PyMuPDF
             doc = pymupdf.open()
             page = doc.new_page()
             
             margin = 40
             y = margin
 
-            def escrever_linha(texto, size=10, bold=False):
-                nonlocal y, page
+            def add_line(text, size=10, bold=False):
+                nonlocal y, page, doc
                 font = "helv-bo" if bold else "helv"
-                page.insert_text((margin, y), texto, fontsize=size, fontname=font, color=(0.1, 0.1, 0.1))
-                y += 16
-                if y > 780:
-                    page = doc.new_page()
-                    y = margin
-
-            # Cabeçalho do Relatório NFe
-            escrever_linha("RELATÓRIO DE NOTA FISCAL ELETRÔNICA (XML)", size=14, bold=True)
-            y += 5
-            escrever_linha(f"Chave de Acesso: {chave}", size=8)
-            y += 10
-
-            # Bloco Dados Gerais
-            escrever_linha("DADOS DA NOTA", size=11, bold=True)
-            escrever_linha(f"Número: {nnf}  |  Série: 1  |  Emissão: {dhemi}")
-            escrever_linha(f"Natureza da Operação: {natop}")
-            y += 10
-
-            # Bloco Emitente e Destinatário
-            escrever_linha("EMITENTE", size=11, bold=True)
-            escrever_linha(f"Nome: {emit_nome}  (CNPJ: {emit_cnpj})")
-            y += 5
-            escrever_linha("DESTINATÁRIO", size=11, bold=True)
-            escrever_linha(f"Nome: {dest_nome}  (CNPJ/CPF: {dest_cnpj})")
-            y += 15
-
-            # Tabela de Produtos
-            escrever_linha("ITENS / PRODUTOS DA NOTA", size=11, bold=True)
-            for idx, p in enumerate(produtos, 1):
-                escrever_linha(f"{idx}. {p['nome'][:65]}", size=9, bold=True)
-                escrever_linha(f"   Qtd: {p['qtd']} un  -  Vlr. Unit: R$ {p['vun']}  -  Total: R$ {p['vtot']}", size=9)
-                y += 4
+                page.insert_text((margin, y), text, fontsize=size, fontname=font)
+                y += 18
                 if y > 750:
                     page = doc.new_page()
                     y = margin
 
+            # Montagem visual do relatório no PDF
+            add_line("RELATÓRIO DE NOTA FISCAL ELETRÔNICA (XML)", size=14, bold=True)
+            y += 5
+            add_line(f"Chave de Acesso: {chave}", size=8)
             y += 10
-            escrever_linha(f"VALOR TOTAL DA NOTA: R$ {vnf}", size=12, bold=True)
 
+            add_line("DADOS DA NOTA FISCAL", size=11, bold=True)
+            add_line(f"Número da Nota: {nnf}")
+            add_line(f"Data de Emissão: {dhemi}")
+            add_line(f"Natureza da Operação: {natop}")
+            y += 10
+
+            add_line("PRODUTOS / ITENS DA NOTA", size=11, bold=True)
+            
+            # Varredura segura dos produtos
+            encontrou_produto = False
+            for det in root.iter():
+                if det.tag.endswith('det'):
+                    prod_nome = "N/A"
+                    prod_vtot = "0.00"
+                    for child in det.iter():
+                        if child.tag.endswith('xProd') and child.text:
+                            prod_nome = child.text.strip()
+                        elif child.tag.endswith('vProd') and child.text:
+                            prod_vtot = child.text.strip()
+                    add_line(f"- {prod_nome[:65]} | Total: R$ {prod_vtot}", size=9)
+                    encontrou_produto = True
+
+            if not encontrou_produto:
+                add_line("Nenhum item detalhado encontrado neste XML.", size=9)
+
+            y += 10
+            add_line(f"VALOR TOTAL DA NOTA: R$ {vnf}", size=12, bold=True)
+
+            # Salva o PDF gerado em memória
             memory_pdf = io.BytesIO()
             doc.save(memory_pdf)
             doc.close()
             memory_pdf.seek(0)
 
-            nome_saida = f"NFe_{nnf}.pdf"
+            nome_saida = f"NFe_{nnf if nnf != 'N/A' else 'Convertida'}.pdf"
             return send_file(
                 memory_pdf,
                 mimetype='application/pdf',
@@ -489,8 +462,8 @@ def xml_para_pdf():
             )
 
         except Exception as e:
-            app.logger.error(f"Erro detalhado no XML: {e}")
-            return 'Erro ao processar o arquivo XML. Certifique-se de que é uma NFe válida.', 500
+            app.logger.error(f"Erro crítico ao processar XML para PDF: {e}")
+            return f"Erro ao processar o arquivo XML: {str(e)}", 500
 
     return 'Formato inválido. Envie um arquivo XML.', 400
 
