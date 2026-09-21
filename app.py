@@ -382,119 +382,105 @@ def xml_para_pdf():
             tree = ET.parse(file)
             root = tree.getroot()
 
-            # Extrai textos ignorando o prefixo do namespace
+            # Função segura para encontrar tags ignorando namespaces da SEFAZ
             def get_text(tag_name):
                 for elem in root.iter():
-                    if elem.tag.endswith(tag_name):
-                        return elem.text
+                    if elem.tag.endswith(tag_name) and elem.text:
+                        return elem.text.strip()
                 return "N/A"
 
             def get_all(tag_name):
-                return [elem.text for elem in root.iter() if elem.tag.endswith(tag_name)]
+                results = []
+                for elem in root.iter():
+                    if elem.tag.endswith(tag_name) and elem.text:
+                        results.append(elem.text.strip())
+                return results
 
-            # Dados básicos
+            # Coleta de dados principais da NFe
             nnf = get_text('nNF')
             dhemi = get_text('dhEmi')
             natop = get_text('natOp')
             vnf = get_text('vNF')
+            chave = get_text('chNFe')
 
-            # Entidades (Geralmente índice 0 é Emitente e 1 é Destinatário na NFe)
-            cnpjs = get_all('CNPJ')
             nomes = get_all('xNome')
+            cnpjs = get_all('CNPJ')
+            
             emit_nome = nomes[0] if len(nomes) > 0 else "N/A"
             emit_cnpj = cnpjs[0] if len(cnpjs) > 0 else "N/A"
             dest_nome = nomes[1] if len(nomes) > 1 else "N/A"
             dest_cnpj = cnpjs[1] if len(cnpjs) > 1 else "N/A"
 
-            # Produtos (Buscando pelos nós de detalhes da nota 'det')
+            # Coleta de produtos
             produtos = []
             for det in root.iter():
                 if det.tag.endswith('det'):
-                    prod = {}
+                    prod_nome = "N/A"
+                    prod_qtd = "0"
+                    prod_vun = "0.00"
+                    prod_vtot = "0.00"
                     for child in det.iter():
-                        if child.tag.endswith('xProd'): prod['nome'] = child.text
-                        elif child.tag.endswith('qCom'): prod['qtd'] = child.text
-                        elif child.tag.endswith('vUnCom'): prod['unid'] = child.text
-                        elif child.tag.endswith('vProd'): prod['total'] = child.text
-                    if prod:
-                        produtos.append(prod)
+                        if child.tag.endswith('xProd'): prod_nome = child.text
+                        elif child.tag.endswith('qCom'): prod_qtd = child.text
+                        elif child.tag.endswith('vUnCom'): prod_vun = child.text
+                        elif child.tag.endswith('vProd'): prod_vtot = child.text
+                    produtos.append({'nome': prod_nome, 'qtd': prod_qtd, 'vun': prod_vun, 'vtot': prod_vtot})
 
-            # Inicia o desenho do PDF com PyMuPDF
+            # Criação do PDF limpo com PyMuPDF
             doc = pymupdf.open()
             page = doc.new_page()
+            
             margin = 40
             y = margin
 
-            # Função auxiliar para desenhar caixas (Boxes) do DANFE
-            def draw_box(title, lines, current_y):
-                page.insert_text((margin, current_y), title, fontsize=11, fontname="helv-bo")
-                current_y += 15
-                
-                box_height = len(lines) * 15 + 10
-                rect = pymupdf.Rect(margin, current_y, 595 - margin, current_y + box_height)
-                page.draw_rect(rect, color=(0.7, 0.7, 0.7), width=1)
-                
-                text_y = current_y + 12
-                for line in lines:
-                    page.insert_text((margin + 10, text_y), line, fontsize=10, fontname="helv")
-                    text_y += 15
-                return current_y + box_height + 20
+            def escrever_linha(texto, size=10, bold=False):
+                nonlocal y, page
+                font = "helv-bo" if bold else "helv"
+                page.insert_text((margin, y), texto, fontsize=size, fontname=font, color=(0.1, 0.1, 0.1))
+                y += 16
+                if y > 780:
+                    page = doc.new_page()
+                    y = margin
 
-            # Cabeçalho
-            page.insert_text((margin, y), "DANFE SIMPLIFICADO", fontsize=16, fontname="helv-bo")
-            y += 30
+            # Cabeçalho do Relatório NFe
+            escrever_linha("RELATÓRIO DE NOTA FISCAL ELETRÔNICA (XML)", size=14, bold=True)
+            y += 5
+            escrever_linha(f"Chave de Acesso: {chave}", size=8)
+            y += 10
 
-            y = draw_box("DADOS DA NOTA FISCAL", [
-                f"Número: {nnf}",
-                f"Emissão: {dhemi}",
-                f"Natureza: {natop}"
-            ], y)
+            # Bloco Dados Gerais
+            escrever_linha("DADOS DA NOTA", size=11, bold=True)
+            escrever_linha(f"Número: {nnf}  |  Série: 1  |  Emissão: {dhemi}")
+            escrever_linha(f"Natureza da Operação: {natop}")
+            y += 10
 
-            y = draw_box("EMITENTE", [
-                f"Razão Social: {emit_nome}",
-                f"CNPJ: {emit_cnpj}"
-            ], y)
-
-            y = draw_box("DESTINATÁRIO", [
-                f"Razão Social: {dest_nome}",
-                f"CNPJ: {dest_cnpj}"
-            ], y)
-
-            # Cabeçalho de Produtos
-            page.insert_text((margin, y), "PRODUTOS", fontsize=11, fontname="helv-bo")
-            y += 15
-            page.insert_text((margin, y), "Descrição", fontsize=9, fontname="helv-bo")
-            page.insert_text((margin + 300, y), "Qtd", fontsize=9, fontname="helv-bo")
-            page.insert_text((margin + 350, y), "V. Unid", fontsize=9, fontname="helv-bo")
-            page.insert_text((margin + 450, y), "V. Total", fontsize=9, fontname="helv-bo")
+            # Bloco Emitente e Destinatário
+            escrever_linha("EMITENTE", size=11, bold=True)
+            escrever_linha(f"Nome: {emit_nome}  (CNPJ: {emit_cnpj})")
+            y += 5
+            escrever_linha("DESTINATÁRIO", size=11, bold=True)
+            escrever_linha(f"Nome: {dest_nome}  (CNPJ/CPF: {dest_cnpj})")
             y += 15
 
-            # Lista de Produtos
-            for p in produtos:
-                nome_formatado = p.get('nome', '')[:50] # Limita tamanho do nome
-                page.insert_text((margin, y), nome_formatado, fontsize=9, fontname="helv")
-                page.insert_text((margin + 300, y), p.get('qtd', ''), fontsize=9, fontname="helv")
-                page.insert_text((margin + 350, y), f"R$ {p.get('unid', '')}", fontsize=9, fontname="helv")
-                page.insert_text((margin + 450, y), f"R$ {p.get('total', '')}", fontsize=9, fontname="helv")
-                y += 15
-                
-                # Quebra de página se a nota tiver muitos itens
+            # Tabela de Produtos
+            escrever_linha("ITENS / PRODUTOS DA NOTA", size=11, bold=True)
+            for idx, p in enumerate(produtos, 1):
+                escrever_linha(f"{idx}. {p['nome'][:65]}", size=9, bold=True)
+                escrever_linha(f"   Qtd: {p['qtd']} un  -  Vlr. Unit: R$ {p['vun']}  -  Total: R$ {p['vtot']}", size=9)
+                y += 4
                 if y > 750:
                     page = doc.new_page()
                     y = margin
 
-            y += 15
-            y = draw_box("TOTAIS", [
-                f"Valor Total da Nota: R$ {vnf}"
-            ], y)
+            y += 10
+            escrever_linha(f"VALOR TOTAL DA NOTA: R$ {vnf}", size=12, bold=True)
 
-            # Salva o arquivo na memória e envia
             memory_pdf = io.BytesIO()
             doc.save(memory_pdf)
             doc.close()
             memory_pdf.seek(0)
 
-            nome_saida = f"DANFE_Simplificado_{os.path.splitext(file.filename)[0]}.pdf"
+            nome_saida = f"NFe_{nnf}.pdf"
             return send_file(
                 memory_pdf,
                 mimetype='application/pdf',
@@ -503,8 +489,8 @@ def xml_para_pdf():
             )
 
         except Exception as e:
-            app.logger.error(f"Erro ao converter XML para PDF: {e}")
-            return 'Erro ao processar a estrutura do XML.', 500
+            app.logger.error(f"Erro detalhado no XML: {e}")
+            return 'Erro ao processar o arquivo XML. Certifique-se de que é uma NFe válida.', 500
 
     return 'Formato inválido. Envie um arquivo XML.', 400
 
