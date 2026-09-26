@@ -453,6 +453,10 @@ Allow: /
 Sitemap: https://meuconversorpdf.com.br/sitemap.xml"""
     return txt, 200, {'Content-Type': 'text/plain'}
 
+@app.route('/blog/comprimir-pdf.html')
+def blog_comprimir_pdf():
+    return render_template('blog/comprimir-pdf.html')
+    
 # ---------------------------------------------------------
 # INICIALIZAÇÃO DO SERVIDOR
 # ---------------------------------------------------------
