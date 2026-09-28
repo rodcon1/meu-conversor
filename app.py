@@ -456,6 +456,10 @@ Sitemap: https://meuconversorpdf.com.br/sitemap.xml"""
 @app.route('/blog/comprimir-pdf.html')
 def blog_comprimir_pdf():
     return render_template('blog/comprimir-pdf.html')
+
+@app.route('/blog/juntar-pdf.html')
+def blog_juntar_pdf():
+    return render_template('blog/juntar-pdf.html')
     
 # ---------------------------------------------------------
 # INICIALIZAÇÃO DO SERVIDOR
