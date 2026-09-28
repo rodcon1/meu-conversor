@@ -442,6 +442,16 @@ def sitemap():
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
+    <url>
+        <loc>https://meuconversorpdf.com.br/blog/comprimir-pdf.html</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://meuconversorpdf.com.br/blog/juntar-pdf.html</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
 </urlset>"""
     return xml, 200, {'Content-Type': 'application/xml'}
 
