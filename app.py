@@ -8,6 +8,9 @@ import jinja2
 import pymupdf  # PyMuPDF (utilizado para manipulação e compressão de PDFs)
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
+from flask import request, send_file
+from nfce import gerar_nfce, NfceError # Importa o seu arquivo
+import io
 
 # Importa o gerador de DANFE oficial do arquivo danfe.py
 from danfe import gerar_danfe, DanfeError
@@ -399,6 +402,35 @@ def xml_para_pdf():
             return f"Erro interno ao gerar o DANFE: {str(e)}", 500
 
     return 'Formato inválido. Envie um arquivo XML.', 400
+
+@app.route('/converter-xml-nfce', methods=['POST'])
+def converter_xml_nfce():
+    if 'arquivo' not in request.files:
+        return "Nenhum arquivo enviado", 400
+    
+    arquivo = request.files['arquivo']
+    
+    if arquivo.filename == '':
+        return "Nenhum arquivo selecionado", 400
+        
+    try:
+        # Lê o arquivo enviado pelo site
+        xml_bytes = arquivo.read()
+        
+        # Usa a sua função para gerar o PDF
+        pdf_bytes, numero = gerar_nfce(xml_bytes)
+        
+        # Devolve o PDF pronto para o usuário baixar automaticamente
+        return send_file(
+            io.BytesIO(pdf_bytes),
+            mimetype='application/pdf',
+            as_attachment=True,
+            download_name=f'Cupom_Fiscal_{numero}.pdf'
+        )
+    except NfceError as e:
+        return f"Erro no formato do XML: {str(e)}", 400
+    except Exception as e:
+        return f"Erro interno: {str(e)}", 500
 
 # ---------------------------------------------------------
 # ROTAS DE SEO (Sitemap e Robots.txt)
