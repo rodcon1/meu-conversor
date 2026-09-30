@@ -32,10 +32,24 @@ FONTE = 'Helvetica'
 NEGRITO = 'Helvetica-Bold'
 
 def _carregar_xml(xml_bytes):
-    # Lê os bytes e remove os namespaces que atrapalham a leitura do XML
-    xml_str = xml_bytes.decode('utf-8', errors='ignore')
-    xml_str = re.sub(r'\sxmlns="[^"]+"', '', xml_str, count=1)
-    return ET.fromstring(xml_str)
+    """
+    Faz o parse do XML e remove os namespaces de forma segura.
+
+    O parser recebe os bytes diretamente para respeitar a codificação
+    declarada no próprio XML. Erros de sintaxe são convertidos em
+    NfceError para que a rota Flask consiga devolvê-los ao usuário.
+    """
+    try:
+        root = ET.fromstring(xml_bytes)
+
+        # Remove o namespace de cada elemento sem alterar o conteúdo.
+        for elem in root.iter():
+            if isinstance(elem.tag, str) and '}' in elem.tag:
+                elem.tag = elem.tag.split('}', 1)[1]
+
+        return root
+    except ET.ParseError as e:
+        raise NfceError(f'XML inválido ou malformado: {e}') from e
 
 def _txt(node, tag):
     return node.findtext(tag) if node is not None else ''
@@ -388,8 +402,10 @@ def gerar_nfce(xml_bytes, largura_mm=80):
         raise NfceError('Largura de bobina inválida: use 58 ou 80 (mm).')
     try:
         root = _carregar_xml(xml_bytes)
-    except DanfeError as e:
-        raise NfceError(str(e)) from e
+    except NfceError:
+        raise
+    except Exception as e:
+        raise NfceError(f'Não foi possível ler o XML: {e}') from e
     dados = extrair_dados_nfce(root)
 
     altura_mm = _Cupom(dados, largura_mm).medir() / mm
