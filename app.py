@@ -407,19 +407,25 @@ def xml_para_pdf():
 def converter_xml_nfce():
     if 'arquivo' not in request.files:
         return "Nenhum arquivo enviado", 400
-    
+
     arquivo = request.files['arquivo']
-    
-    if arquivo.filename == '':
+
+    if not arquivo or not arquivo.filename:
         return "Nenhum arquivo selecionado", 400
-        
+
+    if not arquivo_permitido(arquivo.filename, {'xml'}):
+        return "Por favor, envie um arquivo .xml válido.", 400
+
     try:
         # Lê o arquivo enviado pelo site
         xml_bytes = arquivo.read()
-        
+
+        if not xml_bytes.strip():
+            return "O arquivo XML está vazio.", 400
+
         # Usa a sua função para gerar o PDF
         pdf_bytes, numero = gerar_nfce(xml_bytes)
-        
+
         # Devolve o PDF pronto para o usuário baixar automaticamente
         return send_file(
             io.BytesIO(pdf_bytes),
@@ -428,9 +434,11 @@ def converter_xml_nfce():
             download_name=f'Cupom_Fiscal_{numero}.pdf'
         )
     except NfceError as e:
+        app.logger.warning(f"Erro de validação na NFC-e: {e}")
         return f"Erro no formato do XML: {str(e)}", 400
     except Exception as e:
-        return f"Erro interno: {str(e)}", 500
+        app.logger.exception("Erro crítico ao gerar NFC-e")
+        return f"Erro interno ao gerar NFC-e: {str(e)}", 500
 
 # ---------------------------------------------------------
 # ROTAS DE SEO (Sitemap e Robots.txt)
