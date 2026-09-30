@@ -386,18 +386,21 @@
 
     </div>
 
-    <!-- Bloco de Conversão XML para NFC-e (Cupom Fiscal) -->
-<div class="ferramenta-box">
-    <h3>Gerar Cupom Fiscal (NFC-e)</h3>
-    <p>Transforme o XML de uma NFC-e em um cupom fiscal formato PDF (bobina).</p>
-    
-    <form action="/converter-xml-nfce" method="POST" enctype="multipart/form-data">
-        <label for="arquivo_nfce">Selecione o arquivo XML:</label>
-        <input type="file" name="arquivo" id="arquivo_nfce" accept=".xml" required>
-        <br><br>
-        <button type="submit">Gerar Cupom em PDF</button>
-    </form>
-</div>
+<!-- Ferramenta: Gerar Cupom Fiscal (NFC-e) -->
+    <div class="card" id="nfce-pdf">
+        <div>
+            <h2>🧾 Gerar Cupom Fiscal (NFC-e)</h2>
+            <p>Transforme o XML de uma NFC-e em um cupom fiscal formato PDF (bobina).</p>
+        </div>
+        <form action="/converter-xml-nfce" method="POST" enctype="multipart/form-data">
+            <label class="dropzone">
+                <span class="dropzone-icon">🧾</span>
+                <span class="file-label">Arraste seu arquivo XML aqui ou clique para selecionar</span>
+                <input type="file" name="arquivo" accept=".xml" required>
+            </label>
+            <button type="submit" class="btn">Gerar Cupom em PDF</button>
+        </form>
+    </div>
 
     <!-- Bloco Pix -->
     <div class="pix-section">
