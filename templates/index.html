@@ -526,7 +526,8 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error('Falha no processamento do arquivo.');
+                        const mensagem = await response.text();
+                        throw new Error(mensagem || 'Falha no processamento do arquivo.');
                     }
 
                     let filename = 'arquivo_convertido';
@@ -554,7 +555,7 @@
                     }
 
                 } catch (error) {
-                    alert('Ocorreu um erro durante o processamento. Verifique o arquivo e tente novamente.');
+                    alert(error.message || 'Ocorreu um erro durante o processamento.');
                     console.error(error);
                 } finally {
                     btn.disabled = false;
