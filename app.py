@@ -405,40 +405,51 @@ def xml_para_pdf():
 
 @app.route('/converter-xml-nfce', methods=['POST'])
 def converter_xml_nfce():
-    if 'arquivo' not in request.files:
-        return "Nenhum arquivo enviado", 400
+    """Converte o XML da NFC-e em PDF usando o mesmo fluxo da DANFE."""
+    file = request.files.get('file')
 
-    arquivo = request.files['arquivo']
+    if not file or file.filename == '':
+        return 'Nenhum arquivo XML selecionado', 400
 
-    if not arquivo or not arquivo.filename:
-        return "Nenhum arquivo selecionado", 400
-
-    if not arquivo_permitido(arquivo.filename, {'xml'}):
-        return "Por favor, envie um arquivo .xml válido.", 400
+    if not arquivo_permitido(file.filename, {'xml'}):
+        return 'Por favor, envie um arquivo .xml válido.', 400
 
     try:
-        # Lê o arquivo enviado pelo site
-        xml_bytes = arquivo.read()
+        # Exatamente como na rota XML -> DANFE: lê o XML em memória,
+        # gera o PDF em memória e devolve o PDF no próprio response.
+        xml_bytes = file.read()
 
         if not xml_bytes.strip():
-            return "O arquivo XML está vazio.", 400
+            return 'O arquivo XML está vazio.', 400
 
-        # Usa a sua função para gerar o PDF
+        app.logger.info(
+            'NFC-e: iniciando conversão de %s (%d bytes)',
+            file.filename,
+            len(xml_bytes)
+        )
+
         pdf_bytes, numero = gerar_nfce(xml_bytes)
 
-        # Devolve o PDF pronto para o usuário baixar automaticamente
+        app.logger.info(
+            'NFC-e: conversão concluída. PDF=%d bytes, número=%s',
+            len(pdf_bytes),
+            numero
+        )
+
         return send_file(
             io.BytesIO(pdf_bytes),
             mimetype='application/pdf',
             as_attachment=True,
             download_name=f'Cupom_Fiscal_{numero}.pdf'
         )
+
     except NfceError as e:
-        app.logger.warning(f"Erro de validação na NFC-e: {e}")
-        return f"Erro no formato do XML: {str(e)}", 400
+        app.logger.warning('Erro de formato na NFC-e: %s', e)
+        return f'Erro no formato do XML: {str(e)}', 400
+
     except Exception as e:
-        app.logger.exception("Erro crítico ao gerar NFC-e")
-        return f"Erro interno ao gerar NFC-e: {str(e)}", 500
+        app.logger.exception('Erro crítico ao gerar NFC-e')
+        return f'Erro interno ao gerar NFC-e: {str(e)}', 500
 
 # ---------------------------------------------------------
 # ROTAS DE SEO (Sitemap e Robots.txt)
