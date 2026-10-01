@@ -1,6 +1,8 @@
 Flask
 Pillow
+pillow-heif
 pdf2docx
+PyMuPDF>=1.24.3
 pandas
 openpyxl
 lxml
