@@ -506,6 +506,21 @@
             }
         }
 
+        // Extrai o nome do arquivo do cabeçalho Content-Disposition (aceita filename*=UTF-8'' e filename=)
+        function nomeDoArquivo(disposition, padrao) {
+            if (!disposition) return padrao;
+            const utf8 = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(disposition);
+            if (utf8) {
+                try { return decodeURIComponent(utf8[1].trim()); } catch (_) {}
+            }
+            const simples = /filename\s*=\s*("([^"]+)"|[^;]+)/i.exec(disposition);
+            if (simples) return (simples[2] || simples[1]).trim().replace(/^["']|["']$/g, '');
+            return padrao;
+        }
+
+        // Tempo máximo de espera pelo servidor (ms). Evita a barra de carregamento infinita.
+        const TEMPO_LIMITE_MS = 120000;
+
         document.querySelectorAll('form').forEach(form => {
             if (!form.action) return;
 
@@ -518,12 +533,16 @@
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner"></span> Processando...';
 
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), TEMPO_LIMITE_MS);
+
                 try {
                     const formData = new FormData(form);
                     const response = await fetch(form.action, {
                         method: 'POST',
                         body: formData,
-                        cache: 'no-store'
+                        cache: 'no-store',
+                        signal: controller.signal
                     });
 
                     if (!response.ok) {
@@ -531,11 +550,7 @@
                         throw new Error(mensagem || 'Falha no processamento do arquivo.');
                     }
 
-                    let filename = 'arquivo_convertido';
-                    const disposition = response.headers.get('Content-Disposition');
-                    if (disposition && disposition.includes('filename=')) {
-                        filename = disposition.split('filename=')[1].replace(/["']/g, '');
-                    }
+                    const filename = nomeDoArquivo(response.headers.get('Content-Disposition'), 'arquivo_convertido');
 
                     const blob = await response.blob();
                     const downloadUrl = window.URL.createObjectURL(blob);
@@ -556,9 +571,14 @@
                     }
 
                 } catch (error) {
-                    alert(error.message || 'Ocorreu um erro durante o processamento.');
+                    if (error.name === 'AbortError') {
+                        alert('O servidor demorou demais para responder. Tente novamente em instantes ou com um arquivo menor.');
+                    } else {
+                        alert(error.message || 'Ocorreu um erro durante o processamento.');
+                    }
                     console.error(error);
                 } finally {
+                    clearTimeout(timer);
                     btn.disabled = false;
                     btn.innerHTML = textoOriginal;
                 }
@@ -584,7 +604,8 @@
                 'imagem-pdf': 'Converter Imagens para PDF - Meu Conversor',
                 'pdf-imagem': 'Extrair Imagens de PDF - Meu Conversor',
                 'comprimir-pdf': 'Comprimir PDF Online Grátis - Meu Conversor',
-                'xml-pdf': 'XML para PDF Online Grátis - Meu Conversor'
+                'xml-pdf': 'XML para PDF Online Grátis - Meu Conversor',
+                'nfce-pdf': 'XML para Cupom Fiscal NFC-e em PDF - Meu Conversor'
             };
 
             if (titlesMap[ferramentaAtiva]) {
