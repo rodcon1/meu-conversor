@@ -8,14 +8,17 @@ import jinja2
 import pymupdf  # PyMuPDF (utilizado para manipulação e compressão de PDFs)
 from flask import Flask, render_template, request, send_file, after_this_request, flash, redirect, url_for, send_from_directory
 from PIL import Image
-from flask import request, send_file
-from nfce import gerar_nfce, NfceError # Importa o seu arquivo
-import io
 
-# Importa o gerador de DANFE oficial do arquivo danfe.py
+# 1. IMPORTAÇÕES DOS MOTORES DE NOTA FISCAL
 from danfe import gerar_danfe, DanfeError
 
-# 1. INICIALIZAÇÃO DO APLICATIVO FLASK
+try:
+    from nfce import gerar_nfce, NfceError
+except ImportError:
+    # Caso haja falha temporária na leitura do arquivo, impede que o servidor caia
+    pass
+
+# 2. INICIALIZAÇÃO DO APLICATIVO FLASK
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'chave-secreta-conversor-2026'
 
@@ -51,7 +54,6 @@ def politica():
 def termos():
     return render_template('termos.html')
 
-# Rota para carregar a imagem do QR Code do Pix
 @app.route('/pix-qr.png')
 def serve_pix_qr():
     return send_from_directory(diretorio_atual, 'pix-qr.png')
@@ -89,7 +91,6 @@ def pagina_xml_pdf():
 @app.route('/unir-pdf', methods=['POST'])
 def unir_pdf():
     uploaded_files = request.files.getlist("files")
-    
     merged_pdf = pymupdf.open()
     
     for file in uploaded_files:
@@ -169,11 +170,7 @@ def converter_imagem_pdf():
             app.logger.error(f"Erro ao deletar PDF de saída: {e}")
         return response
 
-    return send_file(
-        caminho_saida,
-        as_attachment=True,
-        download_name="imagens_convertidas.pdf"
-    )
+    return send_file(caminho_saida, as_attachment=True, download_name="imagens_convertidas.pdf")
 
 # ---------------------------------------------------------
 # 3. ROTA DE PROCESSAMENTO: PDF PARA WORD (.docx)
@@ -200,11 +197,9 @@ def converter_pdf_word():
         cv = Converter(caminho_entrada)
         cv.convert(caminho_saida, start=0, end=None)
         cv.close()
-
     except Exception as e:
         app.logger.error(f"Erro ao converter PDF para Word: {e}")
         return f"Erro no processamento do PDF: {e}", 500
-
     finally:
         if os.path.exists(caminho_entrada):
             try:
@@ -222,11 +217,7 @@ def converter_pdf_word():
         return response
 
     nome_download = f"{os.path.splitext(file.filename)[0]}.docx"
-    return send_file(
-        caminho_saida,
-        as_attachment=True,
-        download_name=nome_download
-    )
+    return send_file(caminho_saida, as_attachment=True, download_name=nome_download)
 
 # ---------------------------------------------------------
 # 4. ROTA DE PROCESSAMENTO: XML PARA EXCEL (.xlsx)
@@ -249,7 +240,6 @@ def converter_xml_xlsx():
 
     try:
         file.save(caminho_entrada)
-        
         tree = ET.parse(caminho_entrada)
         root = tree.getroot()
 
@@ -268,11 +258,9 @@ def converter_xml_xlsx():
             df = pd.read_xml(caminho_entrada)
 
         df.to_excel(caminho_saida, index=False)
-
     except Exception as e:
         app.logger.error(f"Erro ao converter XML para Excel: {e}")
         return f"Erro no processamento do XML: {e}", 500
-
     finally:
         if os.path.exists(caminho_entrada):
             try:
@@ -290,11 +278,7 @@ def converter_xml_xlsx():
         return response
 
     nome_download = f"{os.path.splitext(file.filename)[0]}.xlsx"
-    return send_file(
-        caminho_saida,
-        as_attachment=True,
-        download_name=nome_download
-    )
+    return send_file(caminho_saida, as_attachment=True, download_name=nome_download)
 
 # ---------------------------------------------------------
 # 5. ROTA DE PROCESSAMENTO: PDF PARA IMAGEM (.zip)
@@ -321,13 +305,7 @@ def pdf_para_imagem():
                     zf.writestr(f"pagina_{page_num + 1}.png", image_bytes)
             
             memory_zip.seek(0)
-            
-            return send_file(
-                memory_zip,
-                mimetype='application/zip',
-                as_attachment=True,
-                download_name='imagens_extraidas.zip'
-            )
+            return send_file(memory_zip, mimetype='application/zip', as_attachment=True, download_name='imagens_extraidas.zip')
         except Exception as e:
             print(f"Erro na conversão: {e}")
             return 'Erro ao processar o PDF.', 500
@@ -353,12 +331,7 @@ def comprimir_pdf():
             memory_pdf.seek(0)
 
             nome_saida = f"comprimido_{os.path.splitext(file.filename)[0]}.pdf"
-            return send_file(
-                memory_pdf,
-                mimetype='application/pdf',
-                as_attachment=True,
-                download_name=nome_saida
-            )
+            return send_file(memory_pdf, mimetype='application/pdf', as_attachment=True, download_name=nome_saida)
         except Exception as e:
             app.logger.error(f"Erro ao comprimir PDF: {e}")
             return 'Erro ao comprimir o PDF.', 500
@@ -376,80 +349,53 @@ def xml_para_pdf():
 
     if file and file.filename.lower().endswith('.xml'):
         try:
-            # Lê os bytes do arquivo XML enviado
             xml_bytes = file.read()
-
-            # Processa o XML utilizando o motor do danfe.py
             pdf_bytes, numero_nf = gerar_danfe(xml_bytes)
-
+            
             memory_pdf = io.BytesIO(pdf_bytes)
             memory_pdf.seek(0)
-
             nome_saida = f"DANFE_NFe_{numero_nf}.pdf"
-            return send_file(
-                memory_pdf,
-                mimetype='application/pdf',
-                as_attachment=True,
-                download_name=nome_saida
-            )
-
+            
+            return send_file(memory_pdf, mimetype='application/pdf', as_attachment=True, download_name=nome_saida)
         except DanfeError as de:
-            app.logger.warning(f"Erro de negócio no XML: {de}")
             return f"Erro ao processar a Nota Fiscal: {str(de)}", 400
-
         except Exception as e:
-            app.logger.error(f"Erro crítico ao gerar DANFE: {e}")
             return f"Erro interno ao gerar o DANFE: {str(e)}", 500
 
     return 'Formato inválido. Envie um arquivo XML.', 400
 
+# ---------------------------------------------------------
+# 8. ROTA DE PROCESSAMENTO: XML PARA CUPOM FISCAL (NFC-e)
+# ---------------------------------------------------------
 @app.route('/converter-xml-nfce', methods=['POST'])
 def converter_xml_nfce():
-    """Converte o XML da NFC-e em PDF usando o mesmo fluxo da DANFE."""
-    file = request.files.get('file')
-
+    file = request.files.get('file') or request.files.get('arquivo')
+    
     if not file or file.filename == '':
-        return 'Nenhum arquivo XML selecionado', 400
+        return 'Nenhum arquivo selecionado', 400
 
-    if not arquivo_permitido(file.filename, {'xml'}):
-        return 'Por favor, envie um arquivo .xml válido.', 400
+    if file and file.filename.lower().endswith('.xml'):
+        try:
+            xml_bytes = file.read()
+            # Chama o motor de desenho do Cupom Fiscal (nfce.py corrigido)
+            resultado = gerar_nfce(xml_bytes)
+            
+            if isinstance(resultado, tuple):
+                pdf_bytes, numero = resultado
+            else:
+                pdf_bytes = resultado
+                numero = uuid.uuid4().hex[:6]
+                
+            memory_pdf = io.BytesIO(pdf_bytes)
+            memory_pdf.seek(0)
+            nome_saida = f"NFCe_{numero}.pdf"
+            
+            return send_file(memory_pdf, mimetype='application/pdf', as_attachment=True, download_name=nome_saida)
+        except Exception as e:
+            print(f"Erro crítico ao gerar NFC-e: {e}")
+            return f"Erro ao processar o arquivo NFC-e: {str(e)}", 500
 
-    try:
-        # Exatamente como na rota XML -> DANFE: lê o XML em memória,
-        # gera o PDF em memória e devolve o PDF no próprio response.
-        xml_bytes = file.read()
-
-        if not xml_bytes.strip():
-            return 'O arquivo XML está vazio.', 400
-
-        app.logger.info(
-            'NFC-e: iniciando conversão de %s (%d bytes)',
-            file.filename,
-            len(xml_bytes)
-        )
-
-        pdf_bytes, numero = gerar_nfce(xml_bytes)
-
-        app.logger.info(
-            'NFC-e: conversão concluída. PDF=%d bytes, número=%s',
-            len(pdf_bytes),
-            numero
-        )
-
-        return send_file(
-            io.BytesIO(pdf_bytes),
-            mimetype='application/pdf',
-            as_attachment=True,
-            download_name=f'Cupom_Fiscal_{numero}.pdf'
-        )
-
-    except NfceError as e:
-        app.logger.warning('Erro de formato na NFC-e: %s', e)
-        return f'Erro no formato do XML: {str(e)}', 400
-
-    except Exception as e:
-        app.logger.exception('Erro crítico ao gerar NFC-e')
-        return f'Erro interno ao gerar NFC-e: {str(e)}', 500
+    return 'Formato inválido. Envie um arquivo XML.', 400
 
 # ---------------------------------------------------------
 # ROTAS DE SEO (Sitemap e Robots.txt)
@@ -458,60 +404,21 @@ def converter_xml_nfce():
 def sitemap():
     xml = """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url>
-        <loc>https://meuconversorpdf.com.br/</loc>
-        <changefreq>weekly</changefreq>
-        <priority>1.0</priority>
-    </url>
-    <url>
-        <loc>https://meuconversorpdf.com.br/xml-para-excel-online</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.9</priority>
-    </url>
-    <url>
-        <loc>https://meuconversorpdf.com.br/unir-pdf-online</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.9</priority>
-    </url>
-    <url>
-        <loc>https://meuconversorpdf.com.br/imagem-para-pdf-online</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://meuconversorpdf.com.br/pdf-para-imagem-online</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://meuconversorpdf.com.br/comprimir-pdf-online</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.9</priority>
-    </url>
-    <url>
-        <loc>https://meuconversorpdf.com.br/xml-para-pdf-online</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://meuconversorpdf.com.br/blog/comprimir-pdf.html</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://meuconversorpdf.com.br/blog/juntar-pdf.html</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
+    <url><loc>https://meuconversorpdf.com.br/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/xml-para-excel-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/unir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/imagem-para-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/pdf-para-imagem-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/comprimir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/xml-para-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/blog/comprimir-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/blog/juntar-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
 </urlset>"""
     return xml, 200, {'Content-Type': 'application/xml'}
 
 @app.route('/robots.txt')
 def robots():
-    txt = """User-agent: *
-Allow: /
-
-Sitemap: https://meuconversorpdf.com.br/sitemap.xml"""
+    txt = "User-agent: *\nAllow: /\nSitemap: https://meuconversorpdf.com.br/sitemap.xml"
     return txt, 200, {'Content-Type': 'text/plain'}
 
 @app.route('/blog/comprimir-pdf.html')
