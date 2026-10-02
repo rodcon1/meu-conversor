@@ -12,6 +12,8 @@ Uso:
     pdf_bytes, numero = gerar_nfce(xml_bytes, largura_mm=80)
 """
 import io
+import xml.etree.ElementTree as ET
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 from reportlab.graphics import renderPDF
 from reportlab.graphics.barcode.qr import QrCodeWidget
@@ -20,16 +22,14 @@ from reportlab.lib.units import mm
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen import canvas
 
-# Reaproveita parsing, limpeza de namespace e formatadores já validados no DANFE
 
-import xml.etree.ElementTree as ET
-import re, textwrap
+class NfceError(Exception):
+    """Erro de negócio específico da NFC-e (XML inválido, modelo errado etc.)."""
 
-class DanfeError(Exception):
-    pass
 
 FONTE = 'Helvetica'
 NEGRITO = 'Helvetica-Bold'
+
 
 def _carregar_xml(xml_bytes):
     """
@@ -39,6 +39,12 @@ def _carregar_xml(xml_bytes):
     declarada no próprio XML. Erros de sintaxe são convertidos em
     NfceError para que a rota Flask consiga devolvê-los ao usuário.
     """
+    if not xml_bytes or not xml_bytes.strip():
+        raise NfceError('O arquivo XML está vazio.')
+    # NFC-e não usa DOCTYPE/ENTITY; recusar evita ataques de expansão de entidades.
+    cabecalho = xml_bytes[:4096].upper()
+    if b'<!DOCTYPE' in cabecalho or b'<!ENTITY' in xml_bytes.upper():
+        raise NfceError('XML recusado: declarações DOCTYPE/ENTITY não são permitidas.')
     try:
         root = ET.fromstring(xml_bytes)
 
@@ -51,22 +57,137 @@ def _carregar_xml(xml_bytes):
     except ET.ParseError as e:
         raise NfceError(f'XML inválido ou malformado: {e}') from e
 
+
 def _txt(node, tag):
-    return node.findtext(tag) if node is not None else ''
-
-def _dec(val): return val
-def fmt_num(val, casas=2, fmt=''): return str(val) if val else '0,00'
-def fmt_doc(doc): return doc
-def fmt_cep(cep): return cep
-def fmt_fone(fone): return fone
-def fmt_data(dh): return dh[:10].replace('-', '/') if dh else ''
-def fmt_hora(dh): return dh[11:19] if dh and len(dh)>11 else ''
-def fmt_chave(chave): return chave
-def _quebrar(txt, fonte, tam, larg): return textwrap.wrap(txt, width=35) if txt else []
+    """Texto de um subelemento; sempre devolve str ('' quando não existe)."""
+    if node is None:
+        return ''
+    return (node.findtext(tag) or '').strip()
 
 
-class NfceError(DanfeError):
-    """Erro de negócio específico da NFC-e (XML inválido, modelo errado etc.)."""
+# ---------------------------------------------------------------------------
+# FORMATADORES (padrão brasileiro)
+# ---------------------------------------------------------------------------
+def _dec(val):
+    """Converte texto do XML em Decimal; devolve None se vazio/inválido."""
+    if val is None or str(val).strip() == '':
+        return None
+    try:
+        return Decimal(str(val).strip().replace(',', '.'))
+    except InvalidOperation:
+        return None
+
+
+def fmt_num(val, casas=2, minimo=None):
+    """1234.5 -> '1.234,50'. Com minimo < casas, remove zeros finais ('2.0000' -> '2')."""
+    d = _dec(val)
+    if d is None:
+        d = Decimal(0)
+    minimo = casas if minimo is None else minimo
+    try:
+        d = d.quantize(Decimal(1).scaleb(-casas), rounding=ROUND_HALF_UP)
+    except InvalidOperation:
+        return str(val)
+    texto = f"{d:,.{casas}f}"                      # 1,234.50
+    if minimo < casas:
+        inteiro, _, frac = texto.partition('.')
+        frac = frac.rstrip('0').ljust(minimo, '0')
+        texto = inteiro + ('.' + frac if frac else '')
+    return texto.replace(',', '#').replace('.', ',').replace('#', '.')
+
+
+def _positivo(val, casas=2):
+    """Texto formatado se o valor for > 0; senão ''."""
+    d = _dec(val)
+    return fmt_num(d, casas) if d is not None and d > 0 else ''
+
+
+def _so_digitos(v):
+    return ''.join(ch for ch in (v or '') if ch.isdigit())
+
+
+def fmt_doc(doc):
+    n = _so_digitos(doc)
+    if len(n) == 11:
+        return f"{n[:3]}.{n[3:6]}.{n[6:9]}-{n[9:]}"
+    if len(n) == 14:
+        return f"{n[:2]}.{n[2:5]}.{n[5:8]}/{n[8:12]}-{n[12:]}"
+    return doc or ''
+
+
+def fmt_cep(cep):
+    n = _so_digitos(cep)
+    return f"{n[:5]}-{n[5:]}" if len(n) == 8 else (cep or '')
+
+
+def fmt_fone(fone):
+    n = _so_digitos(fone)
+    if len(n) == 10:
+        return f"({n[:2]}) {n[2:6]}-{n[6:]}"
+    if len(n) == 11:
+        return f"({n[:2]}) {n[2:7]}-{n[7:]}"
+    return fone or ''
+
+
+def fmt_data(dh):
+    """'2026-06-10T14:35:22-03:00' -> '10/06/2026'."""
+    if not dh or len(dh) < 10:
+        return ''
+    ano, mes, dia = dh[:4], dh[5:7], dh[8:10]
+    return f"{dia}/{mes}/{ano}"
+
+
+def fmt_hora(dh):
+    return dh[11:19] if dh and len(dh) >= 19 else ''
+
+
+def fmt_chave(chave):
+    """Agrupa a chave de acesso de 4 em 4 dígitos."""
+    return ' '.join(chave[i:i + 4] for i in range(0, len(chave), 4))
+
+
+def _fatiar_palavra(palavra, fonte, tam, larg):
+    """Divide uma palavra maior que a linha em pedaços que cabem. Custo linear."""
+    partes, atual, w = [], '', 0.0
+    for ch in palavra:
+        wc = stringWidth(ch, fonte, tam)
+        if atual and w + wc > larg:
+            partes.append(atual)
+            atual, w = '', 0.0
+        atual += ch
+        w += wc
+    if atual:
+        partes.append(atual)
+    return partes
+
+
+def _quebrar(txt, fonte, tam, larg):
+    """
+    Quebra o texto em linhas que cabem em `larg` (pontos), medindo com a fonte real.
+    Palavras maiores que a linha são fatiadas. Cada caractere é processado uma única
+    vez por etapa, portanto não há laço infinito nem custo quadrático.
+    """
+    if not txt:
+        return []
+    saida = []
+    for paragrafo in str(txt).replace('\r', '').split('\n'):
+        atual = ''
+        for palavra in paragrafo.split():
+            candidato = f"{atual} {palavra}" if atual else palavra
+            if stringWidth(candidato, fonte, tam) <= larg:
+                atual = candidato
+                continue
+            if atual:
+                saida.append(atual)
+                atual = ''
+            if stringWidth(palavra, fonte, tam) > larg:
+                partes = _fatiar_palavra(palavra, fonte, tam, larg)
+                saida.extend(partes[:-1])
+                palavra = partes[-1]
+            atual = palavra
+        if atual:
+            saida.append(atual)
+    return saida
 
 
 UF_AMBIENTE = {'1': 'PRODUÇÃO', '2': 'HOMOLOGAÇÃO'}
@@ -148,11 +269,11 @@ def extrair_dados_nfce(root):
         itens.append({
             'codigo': _txt(prod, 'cProd'),
             'descricao': _txt(prod, 'xProd'),
-            'qtd': fmt_num(_txt(prod, 'qCom'), 4, '0'),
+            'qtd': fmt_num(_txt(prod, 'qCom'), 4, 0),
             'un': _txt(prod, 'uCom'),
-            'vun': fmt_num(_txt(prod, 'vUnCom'), 4, '0,00'),
-            'vtot': fmt_num(_txt(prod, 'vProd'), 2, '0,00'),
-            'vdesc': _dec(_txt(prod, 'vDesc')),
+            'vun': fmt_num(_txt(prod, 'vUnCom'), 4, 2),
+            'vtot': fmt_num(_txt(prod, 'vProd'), 2),
+            'vdesc': _positivo(_txt(prod, 'vDesc')),
             'cst': (_txt(icms, 'CST') or _txt(icms, 'CSOSN') or ''),
         })
 
@@ -161,19 +282,20 @@ def extrair_dados_nfce(root):
         tpag = _txt(p, 'tPag')
         pags.append({
             'tipo': TPAG.get(tpag, tpag),
-            'valor': fmt_num(_txt(p, 'vPag'), 2, '0,00'),
+            'valor': fmt_num(_txt(p, 'vPag'), 2),
         })
-    v_troco = _dec(_txt(inf, 'pag/vTroco'))
+    v_troco = _positivo(_txt(inf, 'pag/vTroco'))
 
     t = inf.find('total/ICMSTot')
-    v_trib = _dec(_txt(t, 'vTotTrib'))
+    v_trib = _positivo(_txt(t, 'vTotTrib'))
     compl = _txt(inf, 'infAdic/infCpl')
 
     # Ambiente e URL de consulta (URL do QR Code já traz tudo que a Sefaz exige,
     # e costuma vir pronta no grupo infNFeSupl do XML autorizado)
-    qrcode_url = _txt(inf, 'infNFeSupl/qrCode') or root.findtext('.//infNFeSupl/qrCode') or ''
+    qrcode_url = root.findtext('.//infNFeSupl/qrCode') or ''
     qrcode_url = qrcode_url.replace('<![CDATA[', '').replace(']]>', '').strip()
-    url_chave = _txt(inf, 'infNFeSupl/urlChave')
+    # infNFeSupl é irmão de infNFe (não filho): precisa ser buscado a partir da raiz
+    url_chave = (root.findtext('.//infNFeSupl/urlChave') or '').strip()
 
     return {
         'chave': chave,
@@ -188,12 +310,12 @@ def extrair_dados_nfce(root):
         'emit': emitente,
         'consumidor': consumidor,
         'itens': itens,
-        'v_prod': fmt_num(_txt(t, 'vProd'), 2, '0,00'),
-        'v_desc': fmt_num(_txt(t, 'vDesc'), 2, '0,00'),
-        'v_nf': fmt_num(_txt(t, 'vNF'), 2, '0,00'),
-        'v_trib': fmt_num(v_trib, 2) if v_trib else None,
+        'v_prod': fmt_num(_txt(t, 'vProd'), 2),
+        'v_desc': fmt_num(_txt(t, 'vDesc'), 2),
+        'v_nf': fmt_num(_txt(t, 'vNF'), 2),
+        'v_trib': v_trib or None,
         'pags': pags,
-        'v_troco': fmt_num(v_troco, 2) if v_troco else None,
+        'v_troco': v_troco or None,
         'compl': compl,
         'qrcode_url': qrcode_url,
         'url_chave': url_chave,
@@ -221,6 +343,7 @@ class _Cupom:
         return self.H - y
 
     def _str(self, x, y, txt, fonte=FONTE, tam=8, alin='e'):
+        txt = '' if txt is None else str(txt)
         self.c.setFont(fonte, tam)
         yy = self._conv(y)
         if alin == 'c':
@@ -231,8 +354,10 @@ class _Cupom:
             self.c.drawString(x, yy, txt)
 
     def _centro(self, txt, fonte=FONTE, tam=8):
-        self._str(self.W / 2, self.y, txt, fonte, tam, 'c')
-        self.y += tam * 0.42 * mm + 1.6 * mm
+        # quebra em várias linhas se não couber na largura da bobina
+        for ln in _quebrar(txt, fonte, tam, self.larg_util):
+            self._str(self.W / 2, self.y, ln, fonte, tam, 'c')
+            self.y += tam * 0.42 * mm + 1.6 * mm
 
     def _linha_texto(self, txt, fonte=FONTE, tam=7.5, alin='e'):
         larg = self.larg_util
@@ -242,9 +367,17 @@ class _Cupom:
             self.y += tam * 0.42 * mm + 1.4 * mm
 
     def _duas_colunas(self, esq, dir_, fonte=FONTE, tam=7.5, negrito_dir=False):
-        self._str(self.M, self.y, esq, fonte, tam, 'e')
-        self._str(self.W - self.M, self.y, dir_, NEGRITO if negrito_dir else fonte, tam, 'd')
-        self.y += tam * 0.42 * mm + 1.4 * mm
+        fonte_dir = NEGRITO if negrito_dir else fonte
+        passo = tam * 0.42 * mm + 1.4 * mm
+        # reserva espaço para o valor da direita; o texto da esquerda quebra se precisar
+        larg_esq = max(self.larg_util - stringWidth(str(dir_), fonte_dir, tam) - 2 * mm, 20 * mm)
+        linhas = _quebrar(esq, fonte, tam, larg_esq) or ['']
+        for ln in linhas[:-1]:
+            self._str(self.M, self.y, ln, fonte, tam, 'e')
+            self.y += passo
+        self._str(self.M, self.y, linhas[-1], fonte, tam, 'e')
+        self._str(self.W - self.M, self.y, dir_, fonte_dir, tam, 'd')
+        self.y += passo
 
     def _separador(self, pontilhado=True):
         self.y += 1.4 * mm
@@ -304,7 +437,7 @@ class _Cupom:
             qtd_un = f"{it['qtd']} {it['un']} x {it['vun']}"
             self._duas_colunas(qtd_un, f"R$ {it['vtot']}", FONTE, 6.8, negrito_dir=True)
             if it['vdesc']:
-                self._duas_colunas('Desconto no item', f"-R$ {fmt_num(it['vdesc'], 2)}", FONTE, 6.5)
+                self._duas_colunas('Desconto no item', f"-R$ {it['vdesc']}", FONTE, 6.5)
             self._espaco(0.6 * mm)
         self._separador()
 
@@ -346,14 +479,22 @@ class _Cupom:
             self._linha_texto(fmt_chave(chave), FONTE, 6.5, 'c')
         self._espaco(1.5 * mm)
 
-        conteudo_qr = d['qrcode_url'] or d['url_chave'] or chave
-        if conteudo_qr:
-            lado = 32 * mm
-            widget = QrCodeWidget(conteudo_qr)
-            b = widget.getBounds()
-            w_nat, h_nat = b[2] - b[0], b[3] - b[1]
-            d_draw = Drawing(lado, lado, transform=[lado / w_nat, 0, 0, lado / h_nat, 0, 0])
-            d_draw.add(widget)
+        lado = 32 * mm
+        d_draw = None
+        # Tenta o QR oficial; se o conteúdo for inválido/grande demais, usa a chave
+        for conteudo_qr in (d['qrcode_url'], d['url_chave'], chave):
+            if not conteudo_qr:
+                continue
+            try:
+                widget = QrCodeWidget(conteudo_qr)
+                b = widget.getBounds()
+                w_nat, h_nat = b[2] - b[0], b[3] - b[1]
+                d_draw = Drawing(lado, lado, transform=[lado / w_nat, 0, 0, lado / h_nat, 0, 0])
+                d_draw.add(widget)
+                break
+            except Exception:
+                d_draw = None
+        if d_draw is not None:
             renderPDF.draw(d_draw, self.c, (self.W - lado) / 2, self._conv(self.y) - lado)
             self.y += lado + 2 * mm
 
