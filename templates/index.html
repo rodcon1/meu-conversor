@@ -550,6 +550,13 @@
                         throw new Error(mensagem || 'Falha no processamento do arquivo.');
                     }
 
+                    // Proteção: se o servidor/proxy devolver uma página HTML (200) em vez do arquivo,
+                    // não baixa "index.html" achando que é o convertido: mostra erro claro.
+                    const tipo = (response.headers.get('Content-Type') || '').toLowerCase();
+                    if (tipo.includes('text/html')) {
+                        throw new Error('O servidor não devolveu o arquivo convertido. Tente novamente em instantes.');
+                    }
+
                     const filename = nomeDoArquivo(response.headers.get('Content-Disposition'), 'arquivo_convertido');
 
                     const blob = await response.blob();
