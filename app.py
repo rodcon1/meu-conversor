@@ -543,6 +543,10 @@ def blog_comprimir_pdf():
 def blog_juntar_pdf():
     return render_template('blog/juntar-pdf.html')
 
+@app.route('/blog/foto-para-pdf.html')
+def blog_foto_para_pdf():
+    return render_template('blog/foto-para-pdf.html')
+
 
 # ---------------------------------------------------------
 # INICIALIZAÇÃO DO SERVIDOR (uso local; em produção o gunicorn importa "app")
