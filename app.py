@@ -215,6 +215,10 @@ def pagina_xml_pdf():
 def pagina_xml_nfce():
     return render_template('index.html', ferramenta_ativa='nfce-pdf')
 
+@app.route('/dividir-pdf-online', methods=['GET'])
+def pagina_dividir_pdf():
+    return render_template('index.html', ferramenta_ativa='dividir-pdf')
+
 
 # ---------------------------------------------------------
 # 1. UNIR PDFs
@@ -245,6 +249,46 @@ def unir_pdf():
     saida.seek(0)
     return send_file(saida, mimetype='application/pdf', as_attachment=True,
                      download_name="documentos_unidos.pdf")
+    
+
+# ---------------------------------------------------------
+# FERRAMENTA NOVA: DIVIDIR PDF
+# ---------------------------------------------------------
+@app.route('/dividir-pdf', methods=['POST'])
+def dividir_pdf():
+    file = request.files.get('file')
+    if not file or file.filename == '':
+        return _erro('Nenhum arquivo selecionado.', 400)
+
+    if not file.filename.lower().endswith('.pdf'):
+        return _erro('Formato inválido. Envie um arquivo PDF.', 400)
+
+    doc = None
+    try:
+        doc = pymupdf.open(stream=file.read(), filetype="pdf")
+        memory_zip = io.BytesIO()
+
+        with zipfile.ZipFile(memory_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for page_num in range(len(doc)):
+                # Cria um novo documento PDF apenas com a página atual
+                pagina_doc = pymupdf.open()
+                pagina_doc.insert_pdf(doc, from_page=page_num, to_page=page_num)
+                
+                # Converte para bytes e salva no ZIP
+                pdf_bytes = pagina_doc.tobytes(deflate=True, garbage=3)
+                zf.writestr(f"pagina_{page_num + 1}.pdf", pdf_bytes)
+                pagina_doc.close()
+
+        memory_zip.seek(0)
+        nome_zip = f"dividido_{_nome_base(file.filename)}.zip"
+        return send_file(memory_zip, mimetype='application/zip', as_attachment=True, download_name=nome_zip)
+    
+    except Exception as e:
+        log.exception("Erro ao dividir PDF")
+        return _erro(f'Erro ao dividir o PDF: {e}', 500)
+    finally:
+        if doc is not None:
+            doc.close()
 
 
 # ---------------------------------------------------------
@@ -524,6 +568,7 @@ def sitemap():
     <url><loc>https://meuconversorpdf.com.br/xml-para-nfce-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/blog/comprimir-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/blog/juntar-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/dividir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
 </urlset>"""
     return xml, 200, {'Content-Type': 'application/xml'}
 
