@@ -326,6 +326,22 @@
             </form>
         </div>
 
+        <!-- Ferramenta Nova: Dividir PDF -->
+        <div class="card" id="dividir-pdf">
+            <div>
+                <h2>✂️ Dividir PDF</h2>
+                <p>Separe um arquivo PDF em documentos individuais (uma página por arquivo) e baixe tudo em formato ZIP.</p>
+            </div>
+            <form action="/dividir-pdf" method="POST" enctype="multipart/form-data">
+                <label class="dropzone">
+                    <span class="dropzone-icon">✂️</span>
+                    <span class="file-label">Arraste seu PDF aqui ou clique para selecionar</span>
+                    <input type="file" name="file" accept=".pdf" required>
+                </label>
+                <button type="submit" class="btn">Dividir PDF</button>
+            </form>
+        </div>
+
         <!-- Ferramenta 3: XML para Excel -->
         <div class="card" id="xml-excel">
             <div>
