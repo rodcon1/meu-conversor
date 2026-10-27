@@ -178,6 +178,11 @@ def serve_pix_qr():
     return send_from_directory(diretorio_atual, 'pix-qr.png')
 
 
+@app.route('/manifest.json')
+def serve_manifest():
+    return send_from_directory(diretorio_atual, 'manifest.json')
+
+
 # ---------------------------------------------------------
 # ROTAS DE PÁGINAS DEDICADAS (SEO HÍBRIDO)
 # ---------------------------------------------------------
