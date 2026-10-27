@@ -1,0 +1,16 @@
+{
+  "name": "Meu Conversor PDF",
+  "short_name": "Conversor",
+  "description": "Ferramentas online para converter imagens, PDFs e XML.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/337/337946.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
