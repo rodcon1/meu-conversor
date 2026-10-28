@@ -182,6 +182,10 @@ def serve_pix_qr():
 def serve_manifest():
     return send_from_directory(diretorio_atual, 'manifest.json')
 
+@app.route('/sw.js')
+def serve_sw():
+    return send_from_directory(diretorio_atual, 'sw.js', mimetype='application/javascript')
+
 
 # ---------------------------------------------------------
 # ROTAS DE PÁGINAS DEDICADAS (SEO HÍBRIDO)
