@@ -333,7 +333,7 @@
             </form>
         </div>
 
-        <!-- Ferramenta Nova: Dividir PDF -->
+        <!-- Ferramenta 3: Dividir PDF -->
         <div class="card" id="dividir-pdf">
             <div>
                 <h2>✂️ Dividir PDF</h2>
@@ -349,7 +349,7 @@
             </form>
         </div>
 
-        <!-- Ferramenta 3: XML para Excel -->
+        <!-- Ferramenta 4: XML para Excel -->
         <div class="card" id="xml-excel">
             <div>
                 <h2>📊 XML para Excel</h2>
@@ -365,7 +365,7 @@
             </form>
         </div>
 
-        <!-- Ferramenta 4: PDF para Imagens -->
+        <!-- Ferramenta 5: PDF para Imagens -->
         <div class="card" id="pdf-imagem">
             <div>
                 <h2>🗂️ PDF para Imagens</h2>
@@ -381,7 +381,7 @@
             </form>
         </div>
 
-        <!-- Ferramenta 5: Comprimir PDF -->
+        <!-- Ferramenta 6: Comprimir PDF -->
         <div class="card" id="comprimir-pdf">
             <div>
                 <h2>📉 Comprimir PDF</h2>
@@ -397,7 +397,7 @@
             </form>
         </div>
 
-        <!-- Ferramenta 6: XML para PDF -->
+        <!-- Ferramenta 7: XML para PDF -->
         <div class="card" id="xml-pdf">
             <div>
                 <h2>📑 XML para PDF</h2>
@@ -413,7 +413,7 @@
             </form>
         </div>
 
-        <!-- Ferramenta: Gerar Cupom Fiscal (NFC-e) -->
+        <!-- Ferramenta 8: Gerar Cupom Fiscal (NFC-e) -->
 <div class="card" id="nfce-pdf">
     <div>
         <h2>🧾 Gerar Cupom Fiscal (NFC-e)</h2>
@@ -428,6 +428,22 @@
         <button type="submit" class="btn">Gerar Cupom em PDF</button>
     </form>
 </div>
+
+        <!-- Ferramenta 9: Reduzir Imagem -->
+        <div class="card" id="comprimir-imagem">
+            <div>
+                <h2>📉 Reduzir Imagem</h2>
+                <p>Diminua o tamanho e o peso de fotos e imagens (JPG, PNG) para enviar rapidamente pela web.</p>
+            </div>
+            <form action="/comprimir-imagem" method="POST" enctype="multipart/form-data">
+                <label class="dropzone">
+                    <span class="dropzone-icon">📉</span>
+                    <span class="file-label">Arraste suas imagens aqui ou clique para selecionar</span>
+                    <input type="file" name="files" accept="image/*" multiple required>
+                </label>
+                <button type="submit" class="btn">Reduzir Tamanho</button>
+            </form>
+        </div>
         
     </div>
 
@@ -647,6 +663,7 @@
                 'xml-pdf': 'XML para PDF Online Grátis - Meu Conversor',
                 'nfce-pdf': 'XML para Cupom Fiscal NFC-e em PDF - Meu Conversor',
                 'dividir-pdf': 'Dividir PDFs Online Grátis - Meu Conversor'
+                'comprimir-imagem': 'Reduzir Tamanho de Imagem Online Grátis - Meu Conversor'
             };
 
             if (titlesMap[ferramentaAtiva]) {
