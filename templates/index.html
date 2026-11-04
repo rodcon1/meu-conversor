@@ -445,19 +445,47 @@
             </form>
         </div>
 
-        <!-- Bloco de Texto SEO Híbrido -->
+        <!-- Bloco de Texto SEO Híbrido (Todas as 9 Ferramentas + Home) -->
         <div class="seo-texto" style="margin-top: 40px; padding: 30px; background: #fff; border-radius: 8px; text-align: left; color: #4a5568; box-shadow: 0 2px 8px rgba(0,0,0,0.05); grid-column: 1 / -1;">
             {% if ferramenta_ativa == 'xml-excel' %}
-            <h3>Como converter XML para Excel grátis?</h3>
-            <p>A ferramenta de transformar XML em Excel online automatiza a extração de dados de Notas Fiscais Eletrônicas. Basta arrastar os arquivos para o painel, e o sistema estruturará as tags em uma planilha XLSX. O processo é 100% seguro e executado na memória RAM, descartando os arquivos logo após o download.</p>
+            <h3>Como converter XML para Excel online e grátis?</h3>
+            <p>A ferramenta de converter XML em Excel automatiza a extração de dados de Notas Fiscais Eletrônicas (NF-e). Basta arrastar os arquivos XML para o painel, e o sistema estruturará as tags em uma planilha XLSX padronizada. O processamento ocorre 100% na memória RAM com descarte imediato dos arquivos após o download.</p>
             
-            {% elif ferramenta_ativa == 'comprimir-imagem' %}
-            <h3>Como reduzir o tamanho de uma imagem online?</h3>
-            <p>Nossa ferramenta diminui o peso de fotos e arquivos (JPG/PNG) sem necessidade de instalação. Ideal para envios corporativos ou sistemas fiscais que exigem arquivos leves. O processamento reduz o tamanho de forma otimizada, mantendo a legibilidade dos documentos.</p>
+            {% elif ferramenta_ativa == 'unir-pdf' %}
+            <h3>Como juntar e unir arquivos PDF online?</h3>
+            <p>Combine múltiplos arquivos PDF em um único documento sequencial de forma rápida e organizada. Ideal para compilar relatórios, comprovantes ou contratos sem perda de qualidade e com total sigilo dos dados.</p>
+            
+            {% elif ferramenta_ativa == 'imagem-pdf' %}
+            <h3>Como converter imagem (JPG, PNG) para PDF?</h3>
+            <p>Transforme fotos e imagens nos formatos JPG, PNG, WEBP ou BMP em um único arquivo PDF. O utilitário processa múltiplos arquivos de uma só vez para facilitar o anexo e envio de documentos corporativos.</p>
+            
+            {% elif ferramenta_ativa == 'pdf-imagem' %}
+            <h3>Como extrair imagens de um arquivo PDF?</h3>
+            <p>Extraia todas as páginas de um documento PDF em imagens no formato PNG. O sistema gera automaticamente um arquivo compactado (ZIP) contendo cada página convertida em alta resolução.</p>
             
             {% elif ferramenta_ativa == 'comprimir-pdf' %}
             <h3>Como comprimir e diminuir o tamanho do PDF?</h3>
-            <p>Reduza o peso de documentos pesados em PDF para envio rápido por e-mail ou WhatsApp. O algoritmo remove dados desnecessários e otimiza a estrutura do arquivo mantendo o formato original de leitura, sem salvar nenhum arquivo em nossos servidores.</p>
+            <p>Reduza o peso de documentos pesados em PDF para envio rápido por e-mail ou WhatsApp. O algoritmo otimiza a estrutura do arquivo mantendo a qualidade de leitura do texto e elementos gráficos.</p>
+            
+            {% elif ferramenta_ativa == 'xml-pdf' %}
+            <h3>Como converter XML de Nota Fiscal (NF-e) para PDF?</h3>
+            <p>Gere o DANFE (Documento Auxiliar da Nota Fiscal Eletrônica) em PDF a partir do arquivo XML original. Solução ideal para visualização rápida, impressão e arquivamento fiscal sem complicação.</p>
+            
+            {% elif ferramenta_ativa == 'nfce-pdf' %}
+            <h3>Como gerar PDF de Cupom Fiscal (NFC-e) via XML?</h3>
+            <p>Transforme arquivos XML de Nota Fiscal de Consumidor Eletrônica (NFC-e) em um cupom fiscal impresso no formato PDF, completo com QR Code e detalhamento dos itens vendidos.</p>
+            
+            {% elif ferramenta_ativa == 'dividir-pdf' %}
+            <h3>Como dividir e separar páginas de um PDF?</h3>
+            <p>Separe um arquivo PDF de várias páginas em documentos individuais para cada página. O sistema devolve um pacote ZIP contendo os arquivos fracionados com precisão.</p>
+            
+            {% elif ferramenta_ativa == 'comprimir-imagem' %}
+            <h3>Como reduzir o tamanho de uma imagem online?</h3>
+            <p>Diminua o peso em megabytes de imagens (JPG, PNG) sem perder a utilidade visual. Perfeito para envios de anexos por e-mail, cadastro em sistemas com limite de espaço ou otimização web.</p>
+            
+            {% else %}
+            <h3>Conversor de Arquivos Online Grátis e Seguro</h3>
+            <p>O Meu Conversor disponibiliza ferramentas online para manipulação de arquivos PDF, XML e imagens diretamente no navegador. Converta notas fiscais, una ou divida documentos e reduza o tamanho de arquivos com processamento 100% em memória RAM e descarte automático dos dados.</p>
             {% endif %}
         </div>
         
