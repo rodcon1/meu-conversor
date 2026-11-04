@@ -261,7 +261,7 @@ def unir_pdf():
     
 
 # ---------------------------------------------------------
-# FERRAMENTA NOVA: DIVIDIR PDF
+# 2. FERRAMENTA NOVA: DIVIDIR PDF
 # ---------------------------------------------------------
 @app.route('/dividir-pdf', methods=['POST'])
 def dividir_pdf():
@@ -301,7 +301,7 @@ def dividir_pdf():
 
 
 # ---------------------------------------------------------
-# 2. IMAGENS PARA PDF
+# 3. IMAGENS PARA PDF
 # ---------------------------------------------------------
 def _preparar_imagem(dados_bytes):
     """Abre a imagem, corrige a rotação (EXIF de celular) e converte para RGB.
@@ -348,7 +348,7 @@ def converter_imagem_pdf():
 
 
 # ---------------------------------------------------------
-# 3. PDF PARA WORD (.docx)
+# 4. PDF PARA WORD (.docx)
 # ---------------------------------------------------------
 @app.route('/pdf-para-word', methods=['POST'])
 @app.route('/converter-pdf-word', methods=['POST'])
@@ -383,7 +383,7 @@ def converter_pdf_word():
 
 
 # ---------------------------------------------------------
-# 4. XML PARA EXCEL (.xlsx)
+# 5. XML PARA EXCEL (.xlsx)
 # ---------------------------------------------------------
 @app.route('/xml-para-excel', methods=['POST'])
 @app.route('/converter-xml-xlsx', methods=['POST'])
@@ -430,7 +430,7 @@ def converter_xml_xlsx():
 
 
 # ---------------------------------------------------------
-# 5. PDF PARA IMAGEM (.zip)
+# 6. PDF PARA IMAGEM (.zip)
 # ---------------------------------------------------------
 @app.route('/pdf-para-imagem', methods=['POST'])
 def pdf_para_imagem():
@@ -465,7 +465,7 @@ def pdf_para_imagem():
 
 
 # ---------------------------------------------------------
-# 6. COMPRIMIR PDF
+# 7. COMPRIMIR PDF
 # ---------------------------------------------------------
 @app.route('/comprimir-pdf', methods=['POST'])
 def comprimir_pdf():
@@ -495,7 +495,7 @@ def comprimir_pdf():
 
 
 # ---------------------------------------------------------
-# 7. XML PARA PDF (DANFE OFICIAL MODELO 55)
+# 8. XML PARA PDF (DANFE OFICIAL MODELO 55)
 # ---------------------------------------------------------
 @app.route('/xml-para-pdf', methods=['POST'])
 def xml_para_pdf():
@@ -523,7 +523,7 @@ def xml_para_pdf():
 
 
 # ---------------------------------------------------------
-# 8. XML PARA CUPOM FISCAL (NFC-e)
+# 9. XML PARA CUPOM FISCAL (NFC-e)
 # ---------------------------------------------------------
 @app.route('/converter-xml-nfce', methods=['POST'])
 def converter_xml_nfce():
@@ -559,6 +559,53 @@ def converter_xml_nfce():
         log.exception("Erro ao gerar NFC-e")
         return _erro(f"Erro ao processar o arquivo NFC-e: {e}", 500)
 
+
+# ---------------------------------------------------------
+# 10. DIMINUIR IMAGEM
+# ---------------------------------------------------------
+@app.route('/comprimir-imagem', methods=['POST'])
+def comprimir_imagem():
+    uploaded_files = request.files.getlist("files")
+    
+    if not uploaded_files or uploaded_files[0].filename == '':
+        return "Nenhuma imagem enviada", 400
+        
+    try:
+        if len(uploaded_files) == 1:
+            file = uploaded_files[0]
+            img = Image.open(file.stream)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            img_io = io.BytesIO()
+            # O parâmetro quality=50 reduz drasticamente o peso mantendo a utilidade da imagem
+            img.save(img_io, format='JPEG', quality=50, optimize=True)
+            img_io.seek(0)
+            
+            nome_base = file.filename.rsplit('.', 1)[0]
+            return send_file(img_io, mimetype='image/jpeg', as_attachment=True, download_name=f"reduzida_{nome_base}.jpg")
+            
+        else:
+            memory_zip = io.BytesIO()
+            with zipfile.ZipFile(memory_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for file in uploaded_files:
+                    if file and file.filename:
+                        img = Image.open(file.stream)
+                        if img.mode != 'RGB':
+                            img = img.convert('RGB')
+                        
+                        img_io = io.BytesIO()
+                        img.save(img_io, format='JPEG', quality=50, optimize=True)
+                        
+                        nome_base = file.filename.rsplit('.', 1)[0]
+                        zf.writestr(f"reduzida_{nome_base}.jpg", img_io.getvalue())
+                        
+            memory_zip.seek(0)
+            return send_file(memory_zip, mimetype='application/zip', as_attachment=True, download_name='imagens_reduzidas.zip')
+            
+    except Exception as e:
+        print(f"Erro na redução de imagem: {e}")
+        return "Erro ao processar as imagens.", 500
 
 # ---------------------------------------------------------
 # ROTAS DE SEO (Sitemap e Robots.txt)
