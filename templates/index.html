@@ -255,22 +255,78 @@
             background-color: #2f855a;
         }
 
-        footer {
-            margin-top: auto;
-            padding-top: 40px;
-            color: #a0aec0;
-            font-size: 0.9rem;
-            text-align: center;
+        /* Novo Rodapé Expandido (SEO) */
+        .site-footer {
+            width: 100%;
+            background-color: #ffffff;
+            border-top: 1px solid #e2e8f0;
+            padding: 50px 20px 20px;
+            margin-top: 60px;
         }
 
-        footer a {
-            color: #3182ce;
+        .footer-container {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 40px;
+        }
+
+        .footer-brand {
+            flex: 1 1 250px;
+            max-width: 300px;
+        }
+
+        .footer-brand p {
+            color: #718096;
+            font-size: 0.95rem;
+            margin-top: 12px;
+            line-height: 1.5;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 50px;
+        }
+
+        .footer-column {
+            display: flex;
+            flex-direction: column;
+            min-width: 140px;
+        }
+
+        .footer-column h4 {
+            color: #2d3748;
+            font-size: 1.05rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .footer-column a {
+            color: #718096;
             text-decoration: none;
-            margin: 0 10px;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+            transition: color 0.2s;
         }
 
-        footer a:hover {
-            text-decoration: underline;
+        .footer-column a:hover {
+            color: #3182ce;
+        }
+
+        .footer-bottom {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 0.85rem;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            width: 100%;
+            max-width: 1100px;
+            margin-left: auto;
+            margin-right: auto;
         }
     </style>
 </head>
@@ -526,11 +582,53 @@
         </div>
     </section>
 
-    <footer>
-        &copy; Meu Conversor - Todos os direitos reservados.
-        <br><br>
-        <a href="/politica">Política de Privacidade</a> | 
-        <a href="/termos">Termos de Uso</a>
+    <footer class="site-footer">
+        <div class="footer-container">
+            <!-- Coluna 1: Marca -->
+            <div class="footer-brand">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 7L4 11M4 11L8 15M4 11H16C18.2091 11 20 12.7909 20 15V16" stroke="#3182ce" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M16 17L20 13M20 13L16 9M20 13H8C5.79086 13 4 11.2091 4 9V8" stroke="#38a169" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span style="font-size: 1.4rem; font-weight: 700; color: #1a202c; letter-spacing: -0.5px;">
+                        Meu<span style="color: #3182ce;">Conversor</span>
+                    </span>
+                </div>
+                <p>Conversão rápida de arquivos. Seguro, gratuito e o processamento ocorre direto na memória do navegador.</p>
+            </div>
+
+            <div class="footer-links">
+                <!-- Coluna 2: Guias e Artigos -->
+                <div class="footer-column">
+                    <h4>Soluções</h4>
+                    <a href="/guia-fechamento-contabil">Fechamento Contábil</a>
+                    <a href="#">Gestão de Documentos</a>
+                    <a href="#">Otimização de Notas</a>
+                </div>
+
+                <!-- Coluna 3: Ferramentas Fortes (Links Internos) -->
+                <div class="footer-column">
+                    <h4>Ferramentas</h4>
+                    <a href="/xml-para-excel-online">XML para Excel</a>
+                    <a href="/unir-pdf-online">Unir PDFs</a>
+                    <a href="/comprimir-pdf-online">Comprimir PDF</a>
+                    <a href="/converter-imagem-pdf">Imagem para PDF</a>
+                </div>
+
+                <!-- Coluna 4: Institucional -->
+                <div class="footer-column">
+                    <h4>Empresa</h4>
+                    <a href="/politica">Política de Privacidade</a>
+                    <a href="/termos">Termos de Uso</a>
+                    <a href="#">Contato</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            &copy; 2026 Meu Conversor - Todos os direitos reservados.
+        </div>
     </footer>
 
     <script>
