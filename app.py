@@ -621,36 +621,34 @@ def sitemap():
     <url><loc>https://meuconversorpdf.com.br/pdf-para-imagem-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/comprimir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
     <url><loc>https://meuconversorpdf.com.br/xml-para-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/xml-para-nfce-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/blog/comprimir-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/blog/juntar-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/dividir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/guia-fechamento-contabil</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>"""
     return xml, 200, {'Content-Type': 'application/xml'}
-
 
 @app.route('/robots.txt')
 def robots():
     txt = "User-agent: *\nAllow: /\nSitemap: https://meuconversorpdf.com.br/sitemap.xml"
     return txt, 200, {'Content-Type': 'text/plain'}
 
-
+# ---------------------------------------------------------
+# ROTAS DO BLOG E GUIAS (ARTIGOS)
+# ---------------------------------------------------------
 @app.route('/blog/comprimir-pdf.html')
 def blog_comprimir_pdf():
     return render_template('blog/comprimir-pdf.html')
-
 
 @app.route('/blog/juntar-pdf.html')
 def blog_juntar_pdf():
     return render_template('blog/juntar-pdf.html')
 
-@app.route('/blog/foto-para-pdf.html')
-def blog_foto_para_pdf():
-    return render_template('blog/foto-para-pdf.html')
-
-
+@app.route('/guia-fechamento-contabil')
+def guia_fechamento():
+    return render_template('fechamento.html')
+    
 # ---------------------------------------------------------
-# INICIALIZAÇÃO DO SERVIDOR (uso local; em produção o gunicorn importa "app")
+# INICIALIZAÇÃO DO SERVIDOR
 # ---------------------------------------------------------
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
