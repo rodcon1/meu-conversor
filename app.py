@@ -624,6 +624,8 @@ def sitemap():
     <url><loc>https://meuconversorpdf.com.br/blog/comprimir-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/blog/juntar-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/guia-fechamento-contabil</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/otimizacao-notas</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/gestao-documentos</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>"""
     return xml, 200, {'Content-Type': 'application/xml'}
 
@@ -646,6 +648,14 @@ def blog_juntar_pdf():
 @app.route('/guia-fechamento-contabil')
 def guia_fechamento():
     return render_template('fechamento.html')
+
+@app.route('/otimizacao-notas')
+def otimizacao_notas():
+    return render_template('otimizacao-notas.html')
+
+@app.route('/gestao-documentos')
+def gestao_documentos():
+    return render_template('gestao-documentos.html')
     
 # ---------------------------------------------------------
 # INICIALIZAÇÃO DO SERVIDOR
