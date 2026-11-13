@@ -10,9 +10,13 @@ import xml.etree.ElementTree as ET
 import jinja2
 import pandas as pd
 import pymupdf  # PyMuPDF (manipulação e compressão de PDFs)
-from flask import Flask, render_template, request, send_file, send_from_directory
+from urllib.parse import urlsplit
+
+from flask import Flask, abort, redirect, render_template, request, send_file, send_from_directory
 from PIL import Image, ImageOps
 from werkzeug.exceptions import HTTPException
+
+from conteudo_seo import ARTIGOS, FERRAMENTAS, PRIVACIDADE
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("conversor")
@@ -80,6 +84,13 @@ ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp', 'bmp', 'heic'}
 
 MIME_DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 MIME_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+# URL oficial do site (usada em canonical, sitemap e dados estruturados).
+# Pode ser trocada pela variável de ambiente BASE_URL.
+BASE_URL = os.environ.get('BASE_URL', 'https://meuconversorpdf.com.br').rstrip('/')
+BASE_HOST = urlsplit(BASE_URL).netloc
+# E-mail exibido na página /contato (defina CONTATO_EMAIL no servidor).
+CONTATO_EMAIL = os.environ.get('CONTATO_EMAIL', '').strip()
 
 
 # ---------------------------------------------------------
@@ -160,7 +171,7 @@ def erro_inesperado(e):
 # ---------------------------------------------------------
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', ld=_ld_home())
 
 
 @app.route('/politica')
@@ -188,55 +199,117 @@ def serve_sw():
 
 
 # ---------------------------------------------------------
-# ROTAS DE PÁGINAS DEDICADAS (SEO HÍBRIDO)
+# SEO: CONTEXTO COMPARTILHADO, REDIRECT WWW E DADOS ESTRUTURADOS
 # ---------------------------------------------------------
-@app.route('/xml-para-excel-online', methods=['GET'])
-def pagina_xml_excel():
-    return render_template('index.html', ferramenta_ativa='xml-excel')
+@app.before_request
+def redirecionar_www():
+    """www.dominio -> dominio (301), para o Google não indexar o site duplicado."""
+    host = request.host.split(':')[0].lower()
+    if host == 'www.' + BASE_HOST and request.method in ('GET', 'HEAD'):
+        return redirect(BASE_URL + request.full_path.rstrip('?'), 301)
 
 
-@app.route('/unir-pdf-online', methods=['GET'])
-def pagina_unir_pdf():
-    return render_template('index.html', ferramenta_ativa='unir-pdf')
+@app.context_processor
+def contexto_global():
+    return {
+        'base_url': BASE_URL,
+        'ferramentas': FERRAMENTAS,
+        'artigos': ARTIGOS,
+        'privacidade': PRIVACIDADE,
+        'contato_email': CONTATO_EMAIL,
+    }
 
 
-@app.route('/imagem-para-pdf-online', methods=['GET'])
-def pagina_imagem_pdf():
-    return render_template('index.html', ferramenta_ativa='imagem-pdf')
+def _ld_ferramenta(chave, p):
+    url = BASE_URL + p['rota']
+    itens = [
+        {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            "name": p['nome'],
+            "url": url,
+            "description": p['descricao'],
+            "applicationCategory": "UtilitiesApplication",
+            "operatingSystem": "Any",
+            "inLanguage": "pt-BR",
+            "browserRequirements": "Requer um navegador com JavaScript",
+            "offers": {"@type": "Offer", "price": "0", "priceCurrency": "BRL"},
+        },
+        {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {"@type": "ListItem", "position": 1, "name": "Início", "item": BASE_URL + "/"},
+                {"@type": "ListItem", "position": 2, "name": p['nome'], "item": url},
+            ],
+        },
+    ]
+    if p.get('faq'):
+        itens.append({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": [
+                {"@type": "Question", "name": q,
+                 "acceptedAnswer": {"@type": "Answer", "text": a}}
+                for q, a in p['faq']
+            ],
+        })
+    return itens
 
 
-@app.route('/pdf-para-imagem-online', methods=['GET'])
-def pagina_pdf_imagem():
-    return render_template('index.html', ferramenta_ativa='pdf-imagem')
+def _ld_home():
+    return [{
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Meu Conversor",
+        "url": BASE_URL + "/",
+        "inLanguage": "pt-BR",
+        "description": "Ferramentas online gratuitas para PDF, XML de nota fiscal e imagens.",
+    }]
 
 
-@app.route('/comprimir-pdf-online', methods=['GET'])
-def pagina_comprimir_pdf():
-    return render_template('index.html', ferramenta_ativa='comprimir-pdf')
+# ---------------------------------------------------------
+# ROTAS DE PÁGINAS DEDICADAS (SEO HÍBRIDO)
+# Uma rota por ferramenta, gerada a partir de conteudo_seo.FERRAMENTAS.
+# ---------------------------------------------------------
+def _criar_pagina_ferramenta(chave):
+    def view():
+        p = FERRAMENTAS[chave]
+        return render_template('index.html', ferramenta_ativa=chave, pagina=p,
+                               ld=_ld_ferramenta(chave, p))
+    view.__name__ = 'pagina_' + chave.replace('-', '_')
+    return view
 
 
-@app.route('/xml-para-pdf-online', methods=['GET'])
-def pagina_xml_pdf():
-    return render_template('index.html', ferramenta_ativa='xml-pdf')
+for _chave, _p in FERRAMENTAS.items():
+    app.add_url_rule(_p['rota'], endpoint='pagina_' + _chave.replace('-', '_'),
+                     view_func=_criar_pagina_ferramenta(_chave), methods=['GET'])
 
 
-@app.route('/xml-para-nfce-online', methods=['GET'])
-def pagina_xml_nfce():
-    return render_template('index.html', ferramenta_ativa='nfce-pdf')
-
-@app.route('/dividir-pdf-online', methods=['GET'])
-def pagina_dividir_pdf():
-    return render_template('index.html', ferramenta_ativa='dividir-pdf')
+@app.route('/contato')
+def contato():
+    return render_template('contato.html')
 
 
-@app.route('/word-para-pdf-online', methods=['GET'])
-def pagina_word_pdf():
-    return render_template('index.html', ferramenta_ativa='word-pdf')
+@app.route('/blog/<slug>.html')
+def artigo(slug):
+    a = ARTIGOS.get(slug)
+    if not a:
+        abort(404)
+    url = f"{BASE_URL}/blog/{slug}.html"
+    ld = [{
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": a['h1'],
+        "description": a['descricao'],
+        "inLanguage": "pt-BR",
+        "mainEntityOfPage": url,
+        "author": {"@type": "Organization", "name": "Meu Conversor"},
+        "publisher": {"@type": "Organization", "name": "Meu Conversor"},
+    }]
+    return render_template('artigo.html', a=a, slug=slug, canonical=url, ld=ld,
+                           ferramenta=FERRAMENTAS[a['ferramenta']])
 
-
-@app.route('/reduzir-imagem-online', methods=['GET'])
-def pagina_reduzir_imagem():
-    return render_template('index.html', ferramenta_ativa='comprimir-imagem')
 
 # ---------------------------------------------------------
 # 1. UNIR PDFs
@@ -695,30 +768,22 @@ def word_para_pdf():
 # ---------------------------------------------------------
 @app.route('/sitemap.xml')
 def sitemap():
-    xml = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url><loc>https://meuconversorpdf.com.br/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/xml-para-excel-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/unir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/imagem-para-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/pdf-para-imagem-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/comprimir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/xml-para-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/word-para-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/dividir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/xml-para-nfce-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/reduzir-imagem-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/blog/comprimir-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/blog/juntar-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/guia-fechamento-contabil</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/otimizacao-notas</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-    <url><loc>https://meuconversorpdf.com.br/gestao-documentos</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-</urlset>"""
-    return xml, 200, {'Content-Type': 'application/xml'}
+    # Gerado a partir do conteudo_seo.py: toda ferramenta/artigo novo entra sozinho.
+    caminhos = ['/']
+    caminhos += [p['rota'] for p in FERRAMENTAS.values()]
+    caminhos += [f'/blog/{slug}.html' for slug in ARTIGOS]
+    caminhos += ['/blog/comprimir-pdf.html', '/blog/juntar-pdf.html',
+                 '/guia-fechamento-contabil', '/otimizacao-notas',
+                 '/gestao-documentos', '/contato']
+    linhas = ''.join(f'    <url><loc>{BASE_URL}{c}</loc></url>\n' for c in caminhos)
+    xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+           f'{linhas}</urlset>')
+    return xml, 200, {'Content-Type': 'application/xml; charset=utf-8'}
 
 @app.route('/robots.txt')
 def robots():
-    txt = "User-agent: *\nAllow: /\nSitemap: https://meuconversorpdf.com.br/sitemap.xml"
+    txt = f"User-agent: *\nAllow: /\nSitemap: {BASE_URL}/sitemap.xml\n"
     return txt, 200, {'Content-Type': 'text/plain'}
 
 # ---------------------------------------------------------
