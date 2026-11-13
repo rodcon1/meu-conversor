@@ -1,0 +1,39 @@
+{% extends "_layout_simples.html" %}
+
+{% block titulo %}{{ a.titulo }}{% endblock %}
+{% block descricao %}{{ a.descricao }}{% endblock %}
+{% block canonical %}{{ canonical }}{% endblock %}
+
+{% block conteudo %}
+<h1>{{ a.h1 }}</h1>
+<p class="resumo">{{ a.resumo }}</p>
+
+{% for titulo, blocos in a.secoes %}
+<h2>{{ titulo }}</h2>
+{% for bloco in blocos %}
+    {% if bloco is string %}
+    <p>{{ bloco }}</p>
+    {% else %}
+    <ul>{% for item in bloco %}<li>{{ item }}</li>{% endfor %}</ul>
+    {% endif %}
+{% endfor %}
+{% endfor %}
+
+<p><a class="cta" href="{{ ferramenta.rota }}">Usar a ferramenta: {{ ferramenta.nome }}</a></p>
+
+<h2>Perguntas frequentes</h2>
+{% for pergunta, resposta in a.faq %}
+<details>
+    <summary>{{ pergunta }}</summary>
+    <p>{{ resposta }}</p>
+</details>
+{% endfor %}
+
+<h2>Leia também</h2>
+<ul>
+    {% for s, outro in artigos.items() if s != slug %}
+    <li><a href="/blog/{{ s }}.html">{{ outro.h1 }}</a></li>
+    {% endfor %}
+    <li><a href="/xml-para-excel-online">XML para Excel</a></li>
+</ul>
+{% endblock %}
