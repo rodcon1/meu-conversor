@@ -233,6 +233,11 @@ def pagina_dividir_pdf():
 def pagina_word_pdf():
     return render_template('index.html', ferramenta_ativa='word-pdf')
 
+
+@app.route('/reduzir-imagem-online', methods=['GET'])
+def pagina_reduzir_imagem():
+    return render_template('index.html', ferramenta_ativa='comprimir-imagem')
+
 # ---------------------------------------------------------
 # 1. UNIR PDFs
 # ---------------------------------------------------------
@@ -569,47 +574,45 @@ def converter_xml_nfce():
 # ---------------------------------------------------------
 @app.route('/comprimir-imagem', methods=['POST'])
 def comprimir_imagem():
-    uploaded_files = request.files.getlist("files")
-    
-    if not uploaded_files or uploaded_files[0].filename == '':
-        return "Nenhuma imagem enviada", 400
-        
+    uploaded_files = [f for f in request.files.getlist("files") if f and f.filename]
+    if not uploaded_files:
+        return _erro("Nenhuma imagem enviada.", 400)
+
+    def _reduzir(arquivo):
+        # _preparar_imagem corrige rotação EXIF e põe fundo branco em PNG transparente
+        img = _preparar_imagem(arquivo.read())
+        try:
+            saida = io.BytesIO()
+            img.save(saida, format='JPEG', quality=50, optimize=True)
+            return saida.getvalue()
+        finally:
+            img.close()
+
     try:
         if len(uploaded_files) == 1:
             file = uploaded_files[0]
-            img = Image.open(file.stream)
-            if img.mode != 'RGB':
-                img = img.convert('RGB')
-            
-            img_io = io.BytesIO()
-            # O parâmetro quality=50 reduz drasticamente o peso mantendo a utilidade da imagem
-            img.save(img_io, format='JPEG', quality=50, optimize=True)
-            img_io.seek(0)
-            
-            nome_base = file.filename.rsplit('.', 1)[0]
-            return send_file(img_io, mimetype='image/jpeg', as_attachment=True, download_name=f"reduzida_{nome_base}.jpg")
-            
-        else:
-            memory_zip = io.BytesIO()
-            with zipfile.ZipFile(memory_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
-                for file in uploaded_files:
-                    if file and file.filename:
-                        img = Image.open(file.stream)
-                        if img.mode != 'RGB':
-                            img = img.convert('RGB')
-                        
-                        img_io = io.BytesIO()
-                        img.save(img_io, format='JPEG', quality=50, optimize=True)
-                        
-                        nome_base = file.filename.rsplit('.', 1)[0]
-                        zf.writestr(f"reduzida_{nome_base}.jpg", img_io.getvalue())
-                        
-            memory_zip.seek(0)
-            return send_file(memory_zip, mimetype='application/zip', as_attachment=True, download_name='imagens_reduzidas.zip')
-            
+            dados = _reduzir(file)
+            return send_file(io.BytesIO(dados), mimetype='image/jpeg', as_attachment=True,
+                             download_name=f"reduzida_{_nome_base(file.filename)}.jpg")
+
+        memory_zip = io.BytesIO()
+        usados = set()
+        with zipfile.ZipFile(memory_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for file in uploaded_files:
+                nome = f"reduzida_{_nome_base(file.filename)}"
+                final, n = nome, 1
+                while final in usados:  # evita sobrescrever nomes repetidos no ZIP
+                    n += 1
+                    final = f"{nome}_{n}"
+                usados.add(final)
+                zf.writestr(f"{final}.jpg", _reduzir(file))
+
+        memory_zip.seek(0)
+        return send_file(memory_zip, mimetype='application/zip', as_attachment=True,
+                         download_name='imagens_reduzidas.zip')
     except Exception as e:
-        print(f"Erro na redução de imagem: {e}")
-        return "Erro ao processar as imagens.", 500
+        log.exception("Erro na redução de imagem")
+        return _erro(f"Erro ao processar as imagens: {e}", 500)
 
 
 # ---------------------------------------------------------
@@ -624,60 +627,68 @@ def word_para_pdf():
     if not file.filename.lower().endswith('.docx'):
         return _erro('Formato inválido. Envie um arquivo .docx.', 400)
 
+    pdf_doc = None
     try:
         # Importação local para não pesar a inicialização global do app
-        import docx 
-        
-        # Lê o arquivo enviado e salva temporariamente para o python-docx ler
-        file_bytes = file.read()
-        temp_docx_path = os.path.join(UPLOAD_FOLDER, f"temp_{uuid.uuid4().hex}.docx")
-        
-        with open(temp_docx_path, "wb") as f:
-            f.write(file_bytes)
-            
-        doc_docx = docx.Document(temp_docx_path)
-        
-        # Cria um novo PDF limpo usando PyMuPDF
+        import docx
+
+        # python-docx lê direto da memória: não precisa de arquivo temporário
+        doc_docx = docx.Document(io.BytesIO(file.read()))
+
         pdf_doc = pymupdf.open()
         page = pdf_doc.new_page()
-        
-        cursor_y = 50
-        margin_x = 50
+
+        margin_x, margin_top, margin_bottom = 50, 50, 50
+        fontsize = 11
+        line_h = fontsize * 1.4
         max_width = page.rect.width - (2 * margin_x)
-        
-        # Extrai o texto do Word e escreve no PDF
+        limite_y = page.rect.height - margin_bottom
+        cursor_y = margin_top
+
+        def quebrar_linhas(texto):
+            """Quebra o parágrafo em linhas que cabem na largura da página."""
+            linhas, atual = [], ""
+            for palavra in texto.split():
+                teste = f"{atual} {palavra}".strip()
+                if pymupdf.get_text_length(teste, fontname="helv", fontsize=fontsize) <= max_width:
+                    atual = teste
+                else:
+                    if atual:
+                        linhas.append(atual)
+                    atual = palavra
+            if atual:
+                linhas.append(atual)
+            return linhas
+
         for para in doc_docx.paragraphs:
-            text = para.text
-            if text.strip() == "":
-                cursor_y += 15 
+            texto = para.text
+            if texto.strip() == "":
+                cursor_y += line_h
                 continue
-            
-            rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
-            
-            # Cria uma nova página se o texto passar do limite de altura
-            if cursor_y > page.rect.height - 50:
-                page = pdf_doc.new_page()
-                cursor_y = 50
-                rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
-            
-            page.insert_textbox(rect, text, fontsize=11, fontname="helv", color=(0, 0, 0))
-            cursor_y += 25 
-        
-        # Apaga o arquivo Word temporário
-        _remover(temp_docx_path)
-        
-        # Salva o PDF na memória e envia para download
+
+            for linha in quebrar_linhas(texto):
+                # Nova página quando a próxima linha não cabe mais
+                if cursor_y + line_h > limite_y:
+                    page = pdf_doc.new_page()
+                    cursor_y = margin_top
+                page.insert_text((margin_x, cursor_y + fontsize), linha,
+                                 fontsize=fontsize, fontname="helv", color=(0, 0, 0))
+                cursor_y += line_h
+            cursor_y += line_h * 0.4  # espaço entre parágrafos
+
         memory_pdf = io.BytesIO()
         pdf_doc.save(memory_pdf, deflate=True, garbage=4, clean=True)
-        pdf_doc.close()
         memory_pdf.seek(0)
-        
+
         nome_saida = f"{_nome_base(file.filename)}.pdf"
         return send_file(memory_pdf, mimetype='application/pdf', as_attachment=True, download_name=nome_saida)
-        
+
     except Exception as e:
         log.exception("Erro ao converter Word para PDF")
         return _erro(f'Erro ao processar o arquivo Word: {e}', 500)
+    finally:
+        if pdf_doc is not None:
+            pdf_doc.close()
 
 # ---------------------------------------------------------
 # ROTAS DE SEO (Sitemap e Robots.txt)
@@ -694,6 +705,9 @@ def sitemap():
     <url><loc>https://meuconversorpdf.com.br/comprimir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
     <url><loc>https://meuconversorpdf.com.br/xml-para-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/word-para-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/dividir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/xml-para-nfce-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/reduzir-imagem-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/blog/comprimir-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/blog/juntar-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/guia-fechamento-contabil</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
