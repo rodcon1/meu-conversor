@@ -465,8 +465,99 @@ def converter_pdf_word():
 
 
 # ---------------------------------------------------------
-# 5. XML PARA EXCEL (.xlsx)
+# 5. XML PARA EXCEL (.xlsx) - Suporta NF-e, NFC-e e XML genérico
 # ---------------------------------------------------------
+def _texto_xml(no, caminho):
+    if no is None:
+        return ''
+    val = no.findtext(caminho)
+    return val.strip() if val else ''
+
+
+def _numero_xml(val):
+    if not val:
+        return 0.0
+    try:
+        return float(str(val).strip().replace(',', '.'))
+    except ValueError:
+        return 0.0
+
+
+def _extrair_linhas_nfe(root):
+    """Extrai cada item (<det>) de uma NF-e/NFC-e com os dados principais da nota."""
+    inf = root if root.tag == 'infNFe' else root.find('.//infNFe')
+    if inf is None:
+        return None
+
+    ide = inf.find('ide')
+    emit = inf.find('emit')
+    dest = inf.find('dest')
+    tot = inf.find('total/ICMSTot')
+    prot = root.find('.//protNFe/infProt')
+
+    dh_emi = _texto_xml(ide, 'dhEmi') or _texto_xml(ide, 'dEmi')
+    if len(dh_emi) >= 10 and dh_emi[4] == '-':
+        data_emissao = f"{dh_emi[8:10]}/{dh_emi[5:7]}/{dh_emi[0:4]}"
+    else:
+        data_emissao = dh_emi
+
+    chave = _texto_xml(prot, 'chNFe') or ''.join(c for c in (inf.get('Id') or '') if c.isdigit())
+
+    cabecalho = {
+        'Numero_NF': _texto_xml(ide, 'nNF'),
+        'Serie': _texto_xml(ide, 'serie'),
+        'Modelo': _texto_xml(ide, 'mod'),
+        'Data_Emissao': data_emissao,
+        'Natureza_Operacao': _texto_xml(ide, 'natOp'),
+        'Emitente_CNPJ_CPF': _texto_xml(emit, 'CNPJ') or _texto_xml(emit, 'CPF'),
+        'Emitente_Nome': _texto_xml(emit, 'xNome'),
+        'Emitente_UF': _texto_xml(emit, 'enderEmit/UF'),
+        'Destinatario_CNPJ_CPF': _texto_xml(dest, 'CNPJ') or _texto_xml(dest, 'CPF'),
+        'Destinatario_Nome': _texto_xml(dest, 'xNome'),
+        'Valor_Total_NF': _numero_xml(_texto_xml(tot, 'vNF')),
+        'Chave_Acesso': chave,
+    }
+
+    linhas = []
+    for det in inf.findall('det'):
+        prod = det.find('prod')
+        imp = det.find('imposto')
+
+        icms_grp = imp.find('ICMS') if imp is not None else None
+        icms_no = list(icms_grp)[0] if icms_grp is not None and len(icms_grp) else None
+
+        pis_grp = imp.find('PIS') if imp is not None else None
+        pis_no = list(pis_grp)[0] if pis_grp is not None and len(pis_grp) else None
+
+        cofins_grp = imp.find('COFINS') if imp is not None else None
+        cofins_no = list(cofins_grp)[0] if cofins_grp is not None and len(cofins_grp) else None
+
+        linha = dict(cabecalho)
+        linha.update({
+            'Item': det.get('nItem', ''),
+            'Codigo_Produto': _texto_xml(prod, 'cProd'),
+            'EAN': _texto_xml(prod, 'cEAN'),
+            'Descricao_Produto': _texto_xml(prod, 'xProd'),
+            'NCM': _texto_xml(prod, 'NCM'),
+            'CFOP': _texto_xml(prod, 'CFOP'),
+            'Unidade': _texto_xml(prod, 'uCom'),
+            'Quantidade': _numero_xml(_texto_xml(prod, 'qCom')),
+            'Valor_Unitario': _numero_xml(_texto_xml(prod, 'vUnCom')),
+            'Valor_Produto': _numero_xml(_texto_xml(prod, 'vProd')),
+            'Desconto': _numero_xml(_texto_xml(prod, 'vDesc')),
+            'Frete': _numero_xml(_texto_xml(prod, 'vFrete')),
+            'CST_CSOSN': _texto_xml(icms_no, 'CST') or _texto_xml(icms_no, 'CSOSN'),
+            'Valor_ICMS': _numero_xml(_texto_xml(icms_no, 'vICMS')),
+            'Valor_IPI': _numero_xml(_texto_xml(imp, 'IPI/IPITrib/vIPI')),
+            'Valor_PIS': _numero_xml(_texto_xml(pis_no, 'vPIS')),
+            'Valor_COFINS': _numero_xml(_texto_xml(cofins_no, 'vCOFINS')),
+        })
+        linhas.append(linha)
+
+    # Caso o XML seja um resumo de NF-e sem tags <det>, devolve ao menos a linha do cabeçalho
+    return linhas if linhas else [cabecalho]
+
+
 @app.route('/xml-para-excel', methods=['POST'])
 @app.route('/converter-xml-xlsx', methods=['POST'])
 def converter_xml_xlsx():
@@ -477,38 +568,47 @@ def converter_xml_xlsx():
     if not arquivo_permitido(file.filename, {'xml'}):
         return _erro('Por favor, envie um arquivo .xml válido.', 400)
 
-    id_unico = str(uuid.uuid4())
-    caminho_entrada = os.path.join(UPLOAD_FOLDER, f"input_{id_unico}.xml")
-    caminho_saida = os.path.join(UPLOAD_FOLDER, f"output_{id_unico}.xlsx")
-
     try:
-        file.save(caminho_entrada)
-        tree = ET.parse(caminho_entrada)
-        root = tree.getroot()
+        xml_bytes = file.read()
+        try:
+            root = ET.fromstring(xml_bytes)
+        except ET.ParseError:
+            root = ET.fromstring(xml_bytes.decode('cp1252').encode('utf-8'))
 
-        dados = []
-        for elem in root:
-            row = {}
-            for child in elem:
-                tag_limpa = child.tag.split('}')[-1] if '}' in child.tag else child.tag
-                row[tag_limpa] = child.text
-            if row:
-                dados.append(row)
+        # Remove namespaces (ex: {http://www.portalfiscal.inf.br/nfe}) para leitura direta
+        for elem in root.iter():
+            if isinstance(elem.tag, str) and '}' in elem.tag:
+                elem.tag = elem.tag.split('}', 1)[1]
 
-        if dados:
-            df = pd.DataFrame(dados)
+        linhas_nfe = _extrair_linhas_nfe(root)
+        if linhas_nfe is not None:
+            df = pd.DataFrame(linhas_nfe)
+            nome_aba = 'Itens_NFe'
         else:
-            df = pd.read_xml(caminho_entrada)
+            dados = []
+            for elem in root:
+                row = {}
+                for child in elem:
+                    row[child.tag] = child.text
+                if row:
+                    dados.append(row)
+            df = pd.DataFrame(dados) if dados else pd.read_xml(io.BytesIO(xml_bytes))
+            nome_aba = 'Dados_XML'
 
-        df.to_excel(caminho_saida, index=False)
+        saida = io.BytesIO()
+        with pd.ExcelWriter(saida, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name=nome_aba)
+            ws = writer.sheets[nome_aba]
+            for col in ws.columns:
+                maior = max((len(str(celula.value or '')) for celula in col), default=10)
+                ws.column_dimensions[col[0].column_letter].width = min(maior + 4, 45)
+
+        saida.seek(0)
+        return send_file(saida, mimetype=MIME_XLSX, as_attachment=True,
+                         download_name=f"{_nome_base(file.filename)}.xlsx")
     except Exception as e:
         log.exception("Erro ao converter XML para Excel")
-        _remover(caminho_saida)
         return _erro(f'Erro no processamento do XML: {e}', 500)
-    finally:
-        _remover(caminho_entrada)
-
-    return _enviar_e_apagar(caminho_saida, f"{_nome_base(file.filename)}.xlsx", MIME_XLSX)
 
 
 # ---------------------------------------------------------
