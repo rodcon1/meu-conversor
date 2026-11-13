@@ -1,0 +1,26 @@
+{% extends "_layout_simples.html" %}
+
+{% block titulo %}Contato | Meu Conversor{% endblock %}
+{% block descricao %}Fale com o Meu Conversor: dúvidas, sugestões de ferramentas e relato de problemas na conversão de arquivos.{% endblock %}
+{% block canonical %}{{ base_url }}/contato{% endblock %}
+
+{% block conteudo %}
+<h1>Contato</h1>
+<p class="resumo">Dúvidas, sugestões ou algum arquivo que não converteu? Fale com a gente.</p>
+
+{% if contato_email %}
+<p>Envie uma mensagem para <a href="mailto:{{ contato_email }}">{{ contato_email }}</a>.</p>
+{% else %}
+<p>O canal de contato por e-mail está sendo configurado. Volte em breve.</p>
+{% endif %}
+
+<h2>Para agilizar o atendimento</h2>
+<ul>
+    <li>Informe qual ferramenta você usou.</li>
+    <li>Descreva a mensagem de erro que apareceu, se houver.</li>
+    <li>Não envie documentos pessoais ou fiscais anexados ao e-mail, a menos que seja pedido.</li>
+</ul>
+
+<h2>Sobre o serviço</h2>
+<p>O Meu Conversor é gratuito e funciona sem cadastro. Os arquivos enviados são processados no servidor apenas durante a conversão e apagados em seguida. Veja os detalhes na <a href="/politica">Política de Privacidade</a> e nos <a href="/termos">Termos de Uso</a>.</p>
+{% endblock %}
