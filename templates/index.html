@@ -501,11 +501,27 @@
             </form>
         </div>
 
+        <!-- Ferramenta: Word para PDF -->
+        <div class="card" id="word-pdf">
+            <div>
+                <h2>📄 Word para PDF</h2>
+                <p>Converta documentos do Word (.docx) em arquivos PDF rapidamente.</p>
+            </div>
+            <form action="/word-para-pdf" method="POST" enctype="multipart/form-data">
+                <label class="dropzone">
+                    <span class="dropzone-icon">📄</span>
+                    <span class="file-label">Arraste seu Word aqui ou clique para selecionar</span>
+                    <input type="file" name="file" accept=".docx" required>
+                </label>
+                <button type="submit" class="btn">Converter para PDF</button>
+            </form>
+        </div>
+
         <!-- Bloco de Texto SEO Híbrido (Todas as 9 Ferramentas + Home) -->
         <div class="seo-texto" style="margin-top: 40px; padding: 30px; background: #fff; border-radius: 8px; text-align: left; color: #4a5568; box-shadow: 0 2px 8px rgba(0,0,0,0.05); grid-column: 1 / -1;">
-            {% if ferramenta_ativa == 'xml-excel' %}
-            <h3>Como converter XML para Excel online e grátis?</h3>
-            <p>A ferramenta de converter XML em Excel automatiza a extração de dados de Notas Fiscais Eletrônicas (NF-e). Basta arrastar os arquivos XML para o painel, e o sistema estruturará as tags em uma planilha XLSX padronizada. O processamento ocorre 100% na memória RAM com descarte imediato dos arquivos após o download.</p>
+            {% elif ferramenta_ativa == 'word-pdf' %}
+            <h3>Como converter Word para PDF online?</h3>
+            <p>Transforme seus relatórios e documentos DOCX em PDFs seguros que não perdem a formatação. Envie o arquivo acima e o nosso sistema converterá instantaneamente, processando os dados direto na memória sem armazenar nada no servidor.</p>
             
             {% elif ferramenta_ativa == 'unir-pdf' %}
             <h3>Como juntar e unir arquivos PDF online?</h3>
@@ -804,8 +820,9 @@
                 'comprimir-pdf': 'Comprimir PDF Online Grátis - Meu Conversor',
                 'xml-pdf': 'XML para PDF Online Grátis - Meu Conversor',
                 'nfce-pdf': 'XML para Cupom Fiscal NFC-e em PDF - Meu Conversor',
-                'dividir-pdf': 'Dividir PDFs Online Grátis - Meu Conversor'
-                'comprimir-imagem': 'Reduzir Tamanho de Imagem Online Grátis - Meu Conversor'
+                'dividir-pdf': 'Dividir PDFs Online Grátis - Meu Conversor',
+                'comprimir-imagem': 'Reduzir Tamanho de Imagem Online Grátis - Meu Conversor',
+                'word-pdf': 'Word para PDF Online Grátis - Meu Conversor'
             };
 
             if (titlesMap[ferramentaAtiva]) {
