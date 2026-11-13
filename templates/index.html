@@ -15,25 +15,37 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversor de PDF Online Grátis | Meu Conversor</title>
-    
-    <meta name="description" content="Converta imagens para PDF, comprimir PDF, unir PDFs e converter XML para Excel online de forma rápida, gratuita e sem instalação.">
-    <meta name="keywords" content="converter imagem em pdf, xml para excel, unir pdf, comprimir pdf, xml para pdf, conversor online gratis">
+    {% set _titulo = pagina.titulo if pagina else 'Conversor de PDF Online Grátis | Meu Conversor' %}
+    {% set _desc = pagina.descricao if pagina else 'Converta imagens para PDF, comprimir PDF, unir PDFs e converter XML para Excel online de forma rápida, gratuita e sem instalação.' %}
+    {% set _url = base_url ~ (pagina.rota if pagina else '/') %}
+    <title>{{ _titulo }}</title>
+
+    <meta name="description" content="{{ _desc }}">
+    <meta name="keywords" content="{{ pagina.keywords if pagina else 'converter imagem em pdf, xml para excel, unir pdf, comprimir pdf, xml para pdf, conversor online gratis' }}">
     <meta name="author" content="Meu Conversor">
+    <meta name="robots" content="index, follow, max-image-preview:large">
+    <link rel="canonical" href="{{ _url }}">
 
     <!-- Open Graph / WhatsApp / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://meuconversorpdf.com.br/">
-    <meta property="og:title" content="Meu Conversor: Ferramentas Online Grátis de PDF">
-    <meta property="og:description" content="Ferramentas online e gratuitas para juntar, dividir, comprimir e converter PDFs sem instalação.">
-    <meta property="og:image" content="https://meuconversorpdf.com.br/static/logo.png">
+    <meta property="og:site_name" content="Meu Conversor">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:url" content="{{ _url }}">
+    <meta property="og:title" content="{{ _titulo }}">
+    <meta property="og:description" content="{{ _desc }}">
+    <meta property="og:image" content="{{ base_url }}/static/logo.png">
 
     <!-- Twitter Cards -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://meuconversorpdf.com.br/">
-    <meta name="twitter:title" content="Meu Conversor Online - Ferramentas de Conversão Gratuitas">
-    <meta name="twitter:description" content="Converta JPG/PNG para PDF, Unir PDFs, Comprimir PDF e XML para XLSX diretamente no navegador.">
-    <meta name="twitter:image" content="https://meuconversorpdf.com.br/static/logo.png">
+    <meta name="twitter:url" content="{{ _url }}">
+    <meta name="twitter:title" content="{{ _titulo }}">
+    <meta name="twitter:description" content="{{ _desc }}">
+    <meta name="twitter:image" content="{{ base_url }}/static/logo.png">
+
+    <!-- Dados estruturados (JSON-LD) -->
+    {% for item in ld|default([]) %}
+    <script type="application/ld+json">{{ item|tojson }}</script>
+    {% endfor %}
 
     <!-- Favicon (Ícone da aba do navegador) -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
@@ -328,6 +340,29 @@
             margin-left: auto;
             margin-right: auto;
         }
+
+        .seo-texto {
+            grid-column: 1 / -1;
+            margin-top: 40px;
+            padding: 30px;
+            background: #fff;
+            border-radius: 8px;
+            text-align: left;
+            color: #4a5568;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            line-height: 1.6;
+        }
+        .seo-texto h2 { font-size: 1.25rem; color: #2d3748; margin: 24px 0 8px; }
+        .seo-texto h2:first-child { margin-top: 0; }
+        .seo-texto p { margin-bottom: 10px; }
+        .seo-texto ol, .seo-texto ul { margin: 0 0 10px 22px; }
+        .seo-texto li { margin-bottom: 6px; }
+        .seo-texto a { color: #3182ce; }
+        .seo-texto details { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; }
+        .seo-texto summary { cursor: pointer; font-weight: 600; color: #2d3748; }
+        .seo-texto details p { margin: 8px 0 0; }
+        .links-relacionados a { display: inline-block; margin: 0 14px 6px 0; }
+        .lista-ferramentas { list-style: none; margin-left: 0 !important; }
     </style>
 </head>
 <body>
@@ -339,14 +374,21 @@
                     <path d="M8 7L4 11M4 11L8 15M4 11H16C18.2091 11 20 12.7909 20 15V16" stroke="#3182ce" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M16 17L20 13M20 13L16 9M20 13H8C5.79086 13 4 11.2091 4 9V8" stroke="#38a169" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <h1 style="font-size: 2.2rem; font-weight: 700; color: #1a202c; letter-spacing: -0.5px;">
+                {% set _tag = 'div' if pagina else 'h1' %}
+                <{{ _tag }} style="font-size: 2.2rem; font-weight: 700; color: #1a202c; letter-spacing: -0.5px;">
                     Meu<span style="color: #3182ce;">Conversor</span>
-                </h1>
+                </{{ _tag }}>
             </a>
         </div>
+        {% if pagina %}
+        <h1 id="header-subtitle" style="font-size: 1.5rem; font-weight: 600; color: #2d3748; max-width: 760px; margin: 0 auto; line-height: 1.3;">
+            {{ pagina.h1 }}
+        </h1>
+        {% else %}
         <p id="header-subtitle" style="font-size: 1.05rem; color: #718096; max-width: 500px; margin: 0 auto;">
             Conversão rápida de arquivos. Sem cadastro, sem instalação.
         </p>
+        {% endif %}
     </header>
 
     <!-- Selo de Segurança / Privacidade -->
@@ -517,54 +559,55 @@
             </form>
         </div>
 
-        <!-- Bloco de Texto SEO Híbrido (Todas as ferramentas + Home) -->
-        <div class="seo-texto" style="margin-top: 40px; padding: 30px; background: #fff; border-radius: 8px; text-align: left; color: #4a5568; box-shadow: 0 2px 8px rgba(0,0,0,0.05); grid-column: 1 / -1;">
-            {% if ferramenta_ativa == 'xml-excel' %}
-            <h3>Como converter XML para Excel online?</h3>
-            <p>Transforme arquivos XML (notas fiscais, relatórios e exportações de sistemas) em planilhas XLSX organizadas, com cada campo em sua própria coluna. O processamento é feito direto na memória, sem armazenar o arquivo no servidor.</p>
+        <!-- Conteúdo SEO por ferramenta (vem de conteudo_seo.py) -->
+        <div class="seo-texto">
+            {% if pagina %}
+            <h2>{{ pagina.nome }}: como funciona</h2>
+            <p>{{ pagina.lead }}</p>
 
-            {% elif ferramenta_ativa == 'word-pdf' %}
-            <h3>Como converter Word para PDF online?</h3>
-            <p>Transforme seus relatórios e documentos DOCX em PDFs seguros que não perdem a formatação. Envie o arquivo acima e o nosso sistema converterá instantaneamente, processando os dados direto na memória sem armazenar nada no servidor.</p>
-            
-            {% elif ferramenta_ativa == 'unir-pdf' %}
-            <h3>Como juntar e unir arquivos PDF online?</h3>
-            <p>Combine múltiplos arquivos PDF em um único documento sequencial de forma rápida e organizada. Ideal para compilar relatórios, comprovantes ou contratos sem perda de qualidade e com total sigilo dos dados.</p>
-            
-            {% elif ferramenta_ativa == 'imagem-pdf' %}
-            <h3>Como converter imagem (JPG, PNG) para PDF?</h3>
-            <p>Transforme fotos e imagens nos formatos JPG, PNG, WEBP ou BMP em um único arquivo PDF. O utilitário processa múltiplos arquivos de uma só vez para facilitar o anexo e envio de documentos corporativos.</p>
-            
-            {% elif ferramenta_ativa == 'pdf-imagem' %}
-            <h3>Como extrair imagens de um arquivo PDF?</h3>
-            <p>Extraia todas as páginas de um documento PDF em imagens no formato PNG. O sistema gera automaticamente um arquivo compactado (ZIP) contendo cada página convertida em alta resolução.</p>
-            
-            {% elif ferramenta_ativa == 'comprimir-pdf' %}
-            <h3>Como comprimir e diminuir o tamanho do PDF?</h3>
-            <p>Reduza o peso de documentos pesados em PDF para envio rápido por e-mail ou WhatsApp. O algoritmo otimiza a estrutura do arquivo mantendo a qualidade de leitura do texto e elementos gráficos.</p>
-            
-            {% elif ferramenta_ativa == 'xml-pdf' %}
-            <h3>Como converter XML de Nota Fiscal (NF-e) para PDF?</h3>
-            <p>Gere o DANFE (Documento Auxiliar da Nota Fiscal Eletrônica) em PDF a partir do arquivo XML original. Solução ideal para visualização rápida, impressão e arquivamento fiscal sem complicação.</p>
-            
-            {% elif ferramenta_ativa == 'nfce-pdf' %}
-            <h3>Como gerar PDF de Cupom Fiscal (NFC-e) via XML?</h3>
-            <p>Transforme arquivos XML de Nota Fiscal de Consumidor Eletrônica (NFC-e) em um cupom fiscal impresso no formato PDF, completo com QR Code e detalhamento dos itens vendidos.</p>
-            
-            {% elif ferramenta_ativa == 'dividir-pdf' %}
-            <h3>Como dividir e separar páginas de um PDF?</h3>
-            <p>Separe um arquivo PDF de várias páginas em documentos individuais para cada página. O sistema devolve um pacote ZIP contendo os arquivos fracionados com precisão.</p>
-            
-            {% elif ferramenta_ativa == 'comprimir-imagem' %}
-            <h3>Como reduzir o tamanho de uma imagem online?</h3>
-            <p>Diminua o peso em megabytes de imagens (JPG, PNG) sem perder a utilidade visual. Perfeito para envios de anexos por e-mail, cadastro em sistemas com limite de espaço ou otimização web.</p>
-            
+            <h2>Como usar</h2>
+            <ol>
+                {% for passo in pagina.passos %}<li>{{ passo }}</li>{% endfor %}
+            </ol>
+
+            <h2>Quando usar</h2>
+            <ul>
+                {% for uso in pagina.usos %}<li>{{ uso }}</li>{% endfor %}
+            </ul>
+
+            <h2>O que você precisa saber</h2>
+            <p>{{ pagina.dicas }}</p>
+            <p>{{ privacidade }}</p>
+
+            <h2>Perguntas frequentes</h2>
+            {% for pergunta, resposta in pagina.faq %}
+            <details>
+                <summary>{{ pergunta }}</summary>
+                <p>{{ resposta }}</p>
+            </details>
+            {% endfor %}
+
+            <h2>Outras ferramentas</h2>
+            <p class="links-relacionados">
+                {% for id in pagina.relacionadas %}
+                <a href="{{ ferramentas[id].rota }}">{{ ferramentas[id].nome }}</a>
+                {% endfor %}
+                <a href="/">Ver todas as ferramentas</a>
+            </p>
             {% else %}
-            <h3>Conversor de Arquivos Online Grátis e Seguro</h3>
-            <p>O Meu Conversor disponibiliza ferramentas online para manipulação de arquivos PDF, XML e imagens diretamente no navegador. Converta notas fiscais, una ou divida documentos e reduza o tamanho de arquivos com processamento 100% em memória RAM e descarte automático dos dados.</p>
+            <h2>Conversor de arquivos online grátis e seguro</h2>
+            <p>O Meu Conversor reúne ferramentas gratuitas para PDF, XML de nota fiscal e imagens, direto no navegador e sem cadastro. Una e divida PDFs, comprima arquivos pesados, converta imagens e Word em PDF, gere o DANFE a partir do XML da NF-e e o cupom fiscal a partir do XML da NFC-e.</p>
+            <p>{{ privacidade }}</p>
+
+            <h2>Todas as ferramentas</h2>
+            <ul class="lista-ferramentas">
+                {% for id, f in ferramentas.items() %}
+                <li><a href="{{ f.rota }}">{{ f.nome }}</a>: {{ f.descricao }}</li>
+                {% endfor %}
+            </ul>
             {% endif %}
         </div>
-        
+
     </div>
 
     <!-- Bloco Pix -->
@@ -573,7 +616,7 @@
         <p>Aponte a câmera do seu banco para o QR Code ou copie a chave Pix abaixo:</p>
         
         <div style="margin: 15px 0;">
-            <img src="/pix-qr.png" alt="QR Code Pix" style="width: 160px; height: 160px; border-radius: 8px; border: 1px solid #cbd5e0; padding: 5px; background: white;">
+            <img src="/pix-qr.png" alt="QR Code Pix" width="160" height="160" loading="lazy" style="width: 160px; height: 160px; border-radius: 8px; border: 1px solid #cbd5e0; padding: 5px; background: white;">
         </div>
 
         <div class="pix-box">
@@ -596,6 +639,12 @@
                 Como juntar várias Notas Fiscais em um PDF 🖇️
             </a>
         </div>
+
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 18px;">
+            {% for slug, a in artigos.items() %}
+            <a href="/blog/{{ slug }}.html" style="color: #2b6cb0; font-weight: 600; text-decoration: none; padding: 8px 4px;">{{ a.h1 }} →</a>
+            {% endfor %}
+        </div>
     </section>
 
     <footer class="site-footer">
@@ -611,7 +660,7 @@
                         Meu<span style="color: #3182ce;">Conversor</span>
                     </span>
                 </div>
-                <p>Conversão rápida de arquivos. Seguro, gratuito e o processamento ocorre direto na memória do navegador.</p>
+                <p>Conversão rápida de arquivos. Seguro, gratuito e os arquivos são processados no servidor e apagados logo após a conversão.</p>
             </div>
 
             <div class="footer-links">
@@ -626,11 +675,9 @@
                 <!-- Coluna 3: Ferramentas Fortes (Links Internos) -->
                 <div class="footer-column">
                     <h4>Ferramentas</h4>
-                    <a href="/xml-para-excel-online">XML para Excel</a>
-                    <a href="/unir-pdf-online">Unir PDFs</a>
-                    <a href="/comprimir-pdf-online">Comprimir PDF</a>
-                    <a href="/dividir-pdf-online">Dividir PDF</a>
-                    <a href="/imagem-para-pdf-online">Imagem para PDF</a>
+                    {% for id, f in ferramentas.items() %}
+                    <a href="{{ f.rota }}">{{ f.nome }}</a>
+                    {% endfor %}
                 </div>
 
                 <!-- Coluna 4: Institucional -->
@@ -638,7 +685,7 @@
                     <h4>Empresa</h4>
                     <a href="/politica">Política de Privacidade</a>
                     <a href="/termos">Termos de Uso</a>
-                    <a href="#">Contato</a>
+                    <a href="/contato">Contato</a>
                 </div>
             </div>
         </div>
@@ -812,23 +859,6 @@
           if (cardAlvo) {
             cardAlvo.classList.add("card-destaque");
             cardAlvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-            const titlesMap = {
-                'xml-excel': 'XML para Excel Online Grátis - Meu Conversor',
-                'unir-pdf': 'Unir PDFs Online Grátis - Meu Conversor',
-                'imagem-pdf': 'Converter Imagens para PDF - Meu Conversor',
-                'pdf-imagem': 'Extrair Imagens de PDF - Meu Conversor',
-                'comprimir-pdf': 'Comprimir PDF Online Grátis - Meu Conversor',
-                'xml-pdf': 'XML para PDF Online Grátis - Meu Conversor',
-                'nfce-pdf': 'XML para Cupom Fiscal NFC-e em PDF - Meu Conversor',
-                'dividir-pdf': 'Dividir PDFs Online Grátis - Meu Conversor',
-                'comprimir-imagem': 'Reduzir Tamanho de Imagem Online Grátis - Meu Conversor',
-                'word-pdf': 'Word para PDF Online Grátis - Meu Conversor'
-            };
-
-            if (titlesMap[ferramentaAtiva]) {
-                document.title = titlesMap[ferramentaAtiva];
-            }
           }
         }
       });
