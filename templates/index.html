@@ -517,8 +517,12 @@
             </form>
         </div>
 
-        <!-- Bloco de Texto SEO Híbrido (Todas as 9 Ferramentas + Home) -->
+        <!-- Bloco de Texto SEO Híbrido (Todas as ferramentas + Home) -->
         <div class="seo-texto" style="margin-top: 40px; padding: 30px; background: #fff; border-radius: 8px; text-align: left; color: #4a5568; box-shadow: 0 2px 8px rgba(0,0,0,0.05); grid-column: 1 / -1;">
+            {% if ferramenta_ativa == 'xml-excel' %}
+            <h3>Como converter XML para Excel online?</h3>
+            <p>Transforme arquivos XML (notas fiscais, relatórios e exportações de sistemas) em planilhas XLSX organizadas, com cada campo em sua própria coluna. O processamento é feito direto na memória, sem armazenar o arquivo no servidor.</p>
+
             {% elif ferramenta_ativa == 'word-pdf' %}
             <h3>Como converter Word para PDF online?</h3>
             <p>Transforme seus relatórios e documentos DOCX em PDFs seguros que não perdem a formatação. Envie o arquivo acima e o nosso sistema converterá instantaneamente, processando os dados direto na memória sem armazenar nada no servidor.</p>
@@ -591,10 +595,6 @@
             <a href="/blog/juntar-pdf.html" style="display: inline-block; background-color: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: background 0.3s;">
                 Como juntar várias Notas Fiscais em um PDF 🖇️
             </a>
-
-            <a href="/blog/foto-para-pdf.html" style="display: inline-block; background-color: #ff9900; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; transition: background 0.3s;">
-                Como converter foto de documento em PDF 📸
-            </a>
         </div>
     </section>
 
@@ -629,7 +629,8 @@
                     <a href="/xml-para-excel-online">XML para Excel</a>
                     <a href="/unir-pdf-online">Unir PDFs</a>
                     <a href="/comprimir-pdf-online">Comprimir PDF</a>
-                    <a href="/converter-imagem-pdf">Imagem para PDF</a>
+                    <a href="/dividir-pdf-online">Dividir PDF</a>
+                    <a href="/imagem-para-pdf-online">Imagem para PDF</a>
                 </div>
 
                 <!-- Coluna 4: Institucional -->
