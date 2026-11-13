@@ -229,6 +229,10 @@ def pagina_dividir_pdf():
     return render_template('index.html', ferramenta_ativa='dividir-pdf')
 
 
+@app.route('/word-para-pdf-online', methods=['GET'])
+def pagina_word_pdf():
+    return render_template('index.html', ferramenta_ativa='word-pdf')
+
 # ---------------------------------------------------------
 # 1. UNIR PDFs
 # ---------------------------------------------------------
@@ -607,6 +611,74 @@ def comprimir_imagem():
         print(f"Erro na redução de imagem: {e}")
         return "Erro ao processar as imagens.", 500
 
+
+# ---------------------------------------------------------
+# 11. NOVA FERRAMENTA: WORD PARA PDF
+# ---------------------------------------------------------
+@app.route('/word-para-pdf', methods=['POST'])
+def word_para_pdf():
+    file = request.files.get('file')
+    if not file or file.filename == '':
+        return _erro('Nenhum arquivo selecionado.', 400)
+
+    if not file.filename.lower().endswith('.docx'):
+        return _erro('Formato inválido. Envie um arquivo .docx.', 400)
+
+    try:
+        # Importação local para não pesar a inicialização global do app
+        import docx 
+        
+        # Lê o arquivo enviado e salva temporariamente para o python-docx ler
+        file_bytes = file.read()
+        temp_docx_path = os.path.join(UPLOAD_FOLDER, f"temp_{uuid.uuid4().hex}.docx")
+        
+        with open(temp_docx_path, "wb") as f:
+            f.write(file_bytes)
+            
+        doc_docx = docx.Document(temp_docx_path)
+        
+        # Cria um novo PDF limpo usando PyMuPDF
+        pdf_doc = pymupdf.open()
+        page = pdf_doc.new_page()
+        
+        cursor_y = 50
+        margin_x = 50
+        max_width = page.rect.width - (2 * margin_x)
+        
+        # Extrai o texto do Word e escreve no PDF
+        for para in doc_docx.paragraphs:
+            text = para.text
+            if text.strip() == "":
+                cursor_y += 15 
+                continue
+            
+            rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
+            
+            # Cria uma nova página se o texto passar do limite de altura
+            if cursor_y > page.rect.height - 50:
+                page = pdf_doc.new_page()
+                cursor_y = 50
+                rect = pymupdf.Rect(margin_x, cursor_y, margin_x + max_width, cursor_y + 800)
+            
+            page.insert_textbox(rect, text, fontsize=11, fontname="helv", color=(0, 0, 0))
+            cursor_y += 25 
+        
+        # Apaga o arquivo Word temporário
+        _remover(temp_docx_path)
+        
+        # Salva o PDF na memória e envia para download
+        memory_pdf = io.BytesIO()
+        pdf_doc.save(memory_pdf, deflate=True, garbage=4, clean=True)
+        pdf_doc.close()
+        memory_pdf.seek(0)
+        
+        nome_saida = f"{_nome_base(file.filename)}.pdf"
+        return send_file(memory_pdf, mimetype='application/pdf', as_attachment=True, download_name=nome_saida)
+        
+    except Exception as e:
+        log.exception("Erro ao converter Word para PDF")
+        return _erro(f'Erro ao processar o arquivo Word: {e}', 500)
+
 # ---------------------------------------------------------
 # ROTAS DE SEO (Sitemap e Robots.txt)
 # ---------------------------------------------------------
@@ -621,6 +693,7 @@ def sitemap():
     <url><loc>https://meuconversorpdf.com.br/pdf-para-imagem-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/comprimir-pdf-online</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
     <url><loc>https://meuconversorpdf.com.br/xml-para-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+    <url><loc>https://meuconversorpdf.com.br/word-para-pdf-online</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/blog/comprimir-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/blog/juntar-pdf.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
     <url><loc>https://meuconversorpdf.com.br/guia-fechamento-contabil</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
