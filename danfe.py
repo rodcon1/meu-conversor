@@ -5,10 +5,6 @@ a partir do XML da NF-e (arquivo nfeProc ou NFe).
 
 Módulo autônomo: NÃO importa nfce.py (e vice-versa), para que um problema
 em uma ferramenta nunca afete a outra.
-
-Uso:
-    from danfe import gerar_danfe, DanfeError
-    pdf_bytes, numero = gerar_danfe(xml_bytes)
 """
 import io
 import xml.etree.ElementTree as ET
@@ -46,7 +42,6 @@ TPAG = {
 def _carregar_xml(xml_bytes):
     if not xml_bytes or not xml_bytes.strip():
         raise DanfeError('O arquivo XML está vazio.')
-    # NF-e não usa DOCTYPE/ENTITY; recusar evita ataques de expansão de entidades.
     if b'<!DOCTYPE' in xml_bytes[:4096].upper() or b'<!ENTITY' in xml_bytes.upper():
         raise DanfeError('XML recusado: declarações DOCTYPE/ENTITY não são permitidas.')
     try:
@@ -78,7 +73,6 @@ def _dec(val):
 
 
 def fmt_num(val, casas=2, minimo=None):
-    """1234.5 -> '1.234,50'. Com minimo < casas remove zeros finais ('2.0000' -> '2')."""
     d = _dec(val)
     if d is None:
         d = Decimal(0)
@@ -137,7 +131,6 @@ def fmt_chave(chave):
 
 
 def _fatiar_palavra(palavra, fonte, tam, larg):
-    """Divide uma palavra maior que a linha. Custo linear, sem laço infinito."""
     partes, atual, w = [], '', 0.0
     for ch in palavra:
         wc = stringWidth(ch, fonte, tam)
@@ -152,7 +145,6 @@ def _fatiar_palavra(palavra, fonte, tam, larg):
 
 
 def _quebrar(txt, fonte, tam, larg):
-    """Quebra o texto em linhas que cabem em `larg` (pontos), medindo com a fonte real."""
     if not txt:
         return []
     saida = []
@@ -177,7 +169,6 @@ def _quebrar(txt, fonte, tam, larg):
 
 
 def _cortar(txt, fonte, tam, larg):
-    """Corta o texto (sem quebrar linha) para caber na largura. Sempre termina."""
     txt = str(txt or '')[:300]
     while len(txt) > 1 and stringWidth(txt, fonte, tam) > larg:
         txt = txt[:-1]
@@ -379,7 +370,6 @@ class _Danfe:
         self.y += 3.4 * mm
 
     def _linha(self, campos, h=8 * mm):
-        """campos: lista de (largura_mm|None, rotulo, valor[, alin]). None = largura restante."""
         fixo = sum(c[0] for c in campos if c[0] is not None) * mm
         livres = [c for c in campos if c[0] is None]
         x = M
@@ -389,7 +379,7 @@ class _Danfe:
             x += w
         self.y += h
 
-    # -- blocos --
+    # -- blocos principais --
     def _cabecalho(self):
         d, e = self.d, self.d['emit']
         y0, h = self.y, 28 * mm
@@ -488,12 +478,27 @@ class _Danfe:
             x += w * mm
         self.y += h
 
+    def _preencher_tabela(self, y_inicio, y_fim):
+        """Desenha o grid prolongando a tabela de produtos até o final do espaço vazio."""
+        if y_inicio >= y_fim:
+            return
+        h_vazio = y_fim - y_inicio
+        x = M
+        self.c.setLineWidth(0.3)
+        for nome, w in COLS:
+            self.c.rect(x, self._cv(y_fim), w * mm, h_vazio)
+            x += w * mm
+
     def _linha_item(self, it):
         larg_desc = COLS[1][1] * mm - 2 * mm
         linhas = _quebrar(it['descricao'], FONTE, 6.3, larg_desc) or ['']
         h = max(5 * mm, len(linhas) * 2.7 * mm + 1.8 * mm)
-        if self.y + h > ALT_PAG - M:
+        
+        # Se não houver espaço suficiente para o item (com 5mm de margem de segurança), quebra a página
+        if self.y + h > ALT_PAG - M - 5 * mm:
+            self._preencher_tabela(self.y, ALT_PAG - M)
             self._nova_pagina()
+            
         valores = [it['codigo'], None, it['ncm'], it['cst'], it['cfop'], it['un'],
                    it['qtd'], it['vun'], it['vtot'], it['bc'], it['vicms'], it['aliq']]
         alinh = ['e', 'e', 'c', 'c', 'c', 'c', 'd', 'd', 'd', 'd', 'd', 'd']
@@ -520,25 +525,71 @@ class _Danfe:
     def _adicionais(self):
         texto = self.d['adicionais']
         linhas = _quebrar(texto, FONTE, 6.3, LARG - 2 * mm)
-        self.y += 1.5 * mm
-        if self.y + 3.4 * mm + 14 * mm > ALT_PAG - M:
-            self._nova_pagina(com_tabela=False)
-        self._titulo('DADOS ADICIONAIS')
+        
+        y_tabela = self.y 
+        tabela_ativa = True
+        
         idx = 0
         while True:
-            livre = ALT_PAG - M - self.y
-            cab = max(int((livre - 3 * mm) / (2.8 * mm)), 1)
-            pedaco = linhas[idx: idx + cab]
-            idx += len(pedaco)
-            h = max(len(pedaco) * 2.8 * mm + 3 * mm, 14 * mm)
-            self._box(M, self.y, LARG, h)
-            self._txt(M + 1 * mm, self.y + 2.4 * mm, 'INFORMAÇÕES COMPLEMENTARES', FONTE, 5)
-            for i, ln in enumerate(pedaco):
-                self._txt(M + 1 * mm, self.y + 5.4 * mm + i * 2.8 * mm, ln, FONTE, 6.3)
-            self.y += h
-            if idx >= len(linhas):
+            livre = ALT_PAG - M - y_tabela
+            
+            # Se não houver o espaço mínimo absoluto para a caixa de dados adicionais
+            if livre < 18.9 * mm:
+                if tabela_ativa:
+                    self._preencher_tabela(y_tabela, ALT_PAG - M)
+                self._nova_pagina(com_tabela=False)
+                y_tabela = self.y
+                livre = ALT_PAG - M - y_tabela
+                tabela_ativa = False
+                
+            restantes = linhas[idx:]
+            h_caixa = max(len(restantes) * 2.8 * mm + 3 * mm, 14 * mm)
+            h_total = h_caixa + 4.9 * mm
+            
+            if h_total <= livre:
+                # O bloco coube integralmente: empurra a caixa para o rodapé da página
+                y_inicio_adicionais = ALT_PAG - M - h_total
+                
+                if tabela_ativa:
+                    # Preenche o grid vazio entre os itens e a caixa de dados adicionais
+                    self._preencher_tabela(y_tabela, y_inicio_adicionais - 1.5 * mm)
+                
+                self.y = y_inicio_adicionais
+                self._titulo('DADOS ADICIONAIS')
+                self._box(M, self.y, LARG, h_caixa)
+                self._txt(M + 1 * mm, self.y + 2.4 * mm, 'INFORMAÇÕES COMPLEMENTARES', FONTE, 5)
+                for i, ln in enumerate(restantes):
+                    self._txt(M + 1 * mm, self.y + 5.4 * mm + i * 2.8 * mm, ln, FONTE, 6.3)
+                
+                self.y += h_caixa
                 break
-            self._nova_pagina(com_tabela=False)  # texto muito longo: continua na próxima folha
+            else:
+                # Texto longo que precisa ser dividido. A caixa também é ancorada no rodapé.
+                cab = max(int((livre - 4.9 * mm - 3 * mm) / (2.8 * mm)), 1)
+                pedaco = linhas[idx : idx + cab]
+                idx += len(pedaco)
+                
+                h_pedaco = max(len(pedaco) * 2.8 * mm + 3 * mm, 14 * mm)
+                y_inicio_adicionais = ALT_PAG - M - h_pedaco - 4.9 * mm
+                
+                if tabela_ativa:
+                    self._preencher_tabela(y_tabela, y_inicio_adicionais - 1.5 * mm)
+                
+                self.y = y_inicio_adicionais
+                self._titulo('DADOS ADICIONAIS')
+                self._box(M, self.y, LARG, h_pedaco)
+                self._txt(M + 1 * mm, self.y + 2.4 * mm, 'INFORMAÇÕES COMPLEMENTARES', FONTE, 5)
+                for i, ln in enumerate(pedaco):
+                    self._txt(M + 1 * mm, self.y + 5.4 * mm + i * 2.8 * mm, ln, FONTE, 6.3)
+                
+                self.y += h_pedaco
+                
+                if idx >= len(linhas):
+                    break
+                
+                self._nova_pagina(com_tabela=False)
+                y_tabela = self.y
+                tabela_ativa = False
 
     def _nova_pagina(self, com_tabela=True):
         self.c.showPage()
@@ -563,7 +614,6 @@ class _Danfe:
 
 
 def gerar_danfe(xml_bytes):
-    """Recebe os bytes do XML da NF-e e devolve (pdf_bytes, numero_da_nota)."""
     try:
         root = _carregar_xml(xml_bytes)
     except DanfeError:
