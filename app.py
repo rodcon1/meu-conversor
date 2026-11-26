@@ -1,3 +1,4 @@
+import base64
 import io
 import os
 import time
@@ -862,6 +863,94 @@ def word_para_pdf():
     finally:
         if pdf_doc is not None:
             pdf_doc.close()
+
+# ---------------------------------------------------------
+# 12. ORGANIZAR PDF (mover e remover páginas)
+# ---------------------------------------------------------
+MAX_PAGINAS_ORGANIZAR = 200  # limite para as miniaturas não pesarem no servidor
+LADO_MINIATURA = 220         # maior lado da miniatura, em pixels
+
+
+def _abrir_pdf_para_organizar():
+    """Valida o upload e abre o PDF. Devolve (doc, None) ou (None, resposta_de_erro)."""
+    file = request.files.get('file')
+    if not file or file.filename == '':
+        return None, _erro('Nenhum arquivo selecionado.', 400)
+
+    if not file.filename.lower().endswith('.pdf'):
+        return None, _erro('Formato inválido. Envie um arquivo PDF.', 400)
+
+    try:
+        doc = pymupdf.open(stream=file.read(), filetype="pdf")
+    except Exception:
+        log.exception("Erro ao abrir PDF para organizar")
+        return None, _erro('Não foi possível abrir o PDF. Verifique se o arquivo não está corrompido.', 400)
+
+    if doc.needs_pass:
+        mensagem = 'Este PDF é protegido por senha. Remova a senha e tente novamente.'
+    elif len(doc) == 0:
+        mensagem = 'O PDF não tem páginas.'
+    elif len(doc) > MAX_PAGINAS_ORGANIZAR:
+        mensagem = f'O PDF tem {len(doc)} páginas. O limite para organizar é de {MAX_PAGINAS_ORGANIZAR}.'
+    else:
+        return doc, None
+
+    doc.close()
+    return None, _erro(mensagem, 400)
+
+
+@app.route('/organizar-pdf/miniaturas', methods=['POST'])
+def miniaturas_pdf():
+    doc, erro = _abrir_pdf_para_organizar()
+    if erro:
+        return erro
+
+    try:
+        paginas = []
+        for page in doc:
+            zoom = LADO_MINIATURA / max(page.rect.width, page.rect.height)
+            pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
+            dados = base64.b64encode(pix.tobytes("jpg", jpg_quality=70)).decode('ascii')
+            paginas.append(f"data:image/jpeg;base64,{dados}")
+            pix = None  # libera a memória de cada página antes da próxima
+        return {'paginas': paginas}, 200, {'Cache-Control': 'no-store'}
+    except Exception as e:
+        log.exception("Erro ao gerar miniaturas")
+        return _erro(f'Erro ao ler as páginas do PDF: {e}', 500)
+    finally:
+        doc.close()
+
+
+@app.route('/organizar-pdf', methods=['POST'])
+def organizar_pdf():
+    """Recebe o PDF e o campo 'ordem': índices das páginas originais (começando em 0),
+    separados por vírgula, na nova ordem. Página que não estiver na lista é removida."""
+    doc, erro = _abrir_pdf_para_organizar()
+    if erro:
+        return erro
+
+    try:
+        try:
+            ordem = [int(n) for n in request.form.get('ordem', '').split(',')]
+        except ValueError:
+            return _erro('Selecione o PDF e aguarde as páginas aparecerem.', 400)
+
+        if len(set(ordem)) != len(ordem) or any(n < 0 or n >= len(doc) for n in ordem):
+            return _erro('A ordem das páginas é inválida. Selecione o PDF novamente.', 400)
+
+        doc.select(ordem)
+        # garbage=3 descarta de fato o conteúdo das páginas removidas
+        saida = io.BytesIO(doc.tobytes(deflate=True, garbage=3))
+
+        nome_saida = f"organizado_{_nome_base(request.files['file'].filename)}.pdf"
+        return send_file(saida, mimetype='application/pdf', as_attachment=True,
+                         download_name=nome_saida)
+    except Exception as e:
+        log.exception("Erro ao organizar PDF")
+        return _erro(f'Erro ao organizar o PDF: {e}', 500)
+    finally:
+        doc.close()
+
 
 # ---------------------------------------------------------
 # ROTAS DE SEO (Sitemap e Robots.txt)
